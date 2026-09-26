@@ -1,0 +1,20 @@
+# Environment variables
+.env
+.env.local
+apps/**/.env
+
+# Dependencies
+node_modules/
+apps/**/node_modules/
+
+# Build output
+apps/mobile/.expo/
+apps/mobile/dist/
+apps/api/dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/

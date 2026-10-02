@@ -4,7 +4,7 @@ async function getAllItems(req, res) {
   const { data, error } = await supabase
     .from('items')
     .select('*, owner:profiles(id, full_name, avatar_url)')
-    .eq('status', 'available')
+    .in('status', ['available', 'borrowed'])
     .order('created_at', { ascending: false });
 
   if (error) {

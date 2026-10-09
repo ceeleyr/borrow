@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
-import { View, Text, Image, ActivityIndicator, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { View, Text, Image, ActivityIndicator, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { getItemById, type Item } from '@/services/items';
+import { createBorrowRequest } from '@/services/borrow';
+import { useAuth } from '@/contexts/auth-context';
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { user } = useAuth();
   const [item, setItem] = useState<Item | null>(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -23,6 +27,20 @@ export default function ItemDetailScreen() {
     loadItem();
   }, [id]);
 
+  async function handleBorrow() {
+    setSubmitting(true);
+    try {
+      await createBorrowRequest(id);
+      Alert.alert('Berhasil', 'Pengajuan pinjam berhasil dikirim, menunggu persetujuan pemilik.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } catch (e: any) {
+      Alert.alert('Gagal', e?.response?.data?.message || 'Terjadi kesalahan');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -38,6 +56,8 @@ export default function ItemDetailScreen() {
       </View>
     );
   }
+
+  const isOwner = item.owner?.id === user?.id;
 
   return (
     <ScrollView style={styles.container}>
@@ -66,10 +86,22 @@ export default function ItemDetailScreen() {
           <Text style={styles.ownerName}>{item.owner?.full_name ?? 'Unknown'}</Text>
         </View>
 
-        {item.status === 'available' && (
-          <Pressable style={styles.borrowButton}>
-            <Text style={styles.borrowButtonText}>Ajukan Pinjam</Text>
+        {isOwner ? (
+          <View style={styles.ownerNotice}>
+            <Text style={styles.ownerNoticeText}>Ini barang milikmu sendiri</Text>
+          </View>
+        ) : item.status === 'available' ? (
+          <Pressable style={styles.borrowButton} onPress={handleBorrow} disabled={submitting}>
+            {submitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.borrowButtonText}>Ajukan Pinjam</Text>
+            )}
           </Pressable>
+        ) : (
+          <View style={styles.unavailableNotice}>
+            <Text style={styles.unavailableNoticeText}>Barang sedang tidak tersedia</Text>
+          </View>
         )}
       </View>
     </ScrollView>
@@ -77,44 +109,15 @@ export default function ItemDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    color: '#ef4444',
-  },
-  image: {
-    width: '100%',
-    height: 250,
-  },
-  imagePlaceholder: {
-    backgroundColor: '#e5e7eb',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderText: {
-    color: '#9ca3af',
-  },
-  content: {
-    padding: 16,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  category: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 12,
-  },
+  container: { flex: 1, backgroundColor: '#ffffff' },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  errorText: { color: '#ef4444' },
+  image: { width: '100%', height: 250 },
+  imagePlaceholder: { backgroundColor: '#e5e7eb', justifyContent: 'center', alignItems: 'center' },
+  placeholderText: { color: '#9ca3af' },
+  content: { padding: 16 },
+  title: { fontSize: 22, fontWeight: 'bold', color: '#000000', marginBottom: 4 },
+  category: { fontSize: 14, color: '#6b7280', marginBottom: 12 },
   statusBadge: {
     alignSelf: 'flex-start',
     backgroundColor: '#dbeafe',
@@ -123,43 +126,15 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     marginBottom: 16,
   },
-  statusText: {
-    color: '#2563eb',
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  description: {
-    fontSize: 14,
-    color: '#374151',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  ownerSection: {
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    paddingTop: 16,
-    marginBottom: 20,
-  },
-  ownerLabel: {
-    fontSize: 12,
-    color: '#9ca3af',
-    marginBottom: 2,
-  },
-  ownerName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  borrowButton: {
-    backgroundColor: '#2563eb',
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  borrowButtonText: {
-    color: '#ffffff',
-    fontWeight: '600',
-    fontSize: 16,
-  },
+  statusText: { color: '#2563eb', fontSize: 12, fontWeight: '600', textTransform: 'uppercase' },
+  description: { fontSize: 14, color: '#374151', lineHeight: 20, marginBottom: 20 },
+  ownerSection: { borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 16, marginBottom: 20 },
+  ownerLabel: { fontSize: 12, color: '#9ca3af', marginBottom: 2 },
+  ownerName: { fontSize: 16, fontWeight: '600', color: '#000000' },
+  borrowButton: { backgroundColor: '#2563eb', borderRadius: 8, paddingVertical: 14, alignItems: 'center' },
+  borrowButtonText: { color: '#ffffff', fontWeight: '600', fontSize: 16 },
+  ownerNotice: { backgroundColor: '#f3f4f6', borderRadius: 8, padding: 14, alignItems: 'center' },
+  ownerNoticeText: { color: '#6b7280', fontSize: 14 },
+  unavailableNotice: { backgroundColor: '#fee2e2', borderRadius: 8, padding: 14, alignItems: 'center' },
+  unavailableNoticeText: { color: '#dc2626', fontSize: 14 },
 });

@@ -1,13 +1,14 @@
 const multer = require('multer');
-
-const storage = multer.memoryStorage();
+const { EXT_BY_MIME } = require('../storage/localStorage');
 
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // max 5MB
   fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith('image/')) {
-      return cb(new Error('File harus berupa gambar'));
+    if (!EXT_BY_MIME[file.mimetype]) {
+      const err = new Error('File harus berupa gambar (jpg, png, webp, gif)');
+      err.isUploadFilter = true;
+      return cb(err);
     }
     cb(null, true);
   },

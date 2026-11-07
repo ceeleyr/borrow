@@ -18,3 +18,14 @@ Thumbs.db
 
 # IDE
 .vscode/
+
+
+node_modules/
+.env
+.env.*
+!.env.example
+.expo/
+dist/
+web-build/
+uploads/
+*.log

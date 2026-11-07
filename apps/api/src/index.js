@@ -1,22 +1,25 @@
-const express = require('express');
-const cors = require('cors');
-const { port } = require('./config/env');
-const userRoutes = require('./routes/user.routes');
-const itemRoutes = require('./routes/item.routes');
-const authRoutes = require('./routes/auth.routes');
-const borrowRoutes = require('./routes/borrow.routes');
-const adminRoutes = require('./routes/admin.routes');
+const { load } = require('./config/env');
+const { buildApp } = require('./bootstrap');
+const { seedDemo, DEMO_ACCOUNTS, DEMO_PASSWORD } = require('./seed');
 
-const app = express();
+async function main() {
+  const config = load();
+  const built = buildApp(config);
 
-app.use(cors());
-app.use(express.json());
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/items', itemRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/borrow-requests', borrowRoutes);
+  if (built.mode === 'memory' && config.seedDemo) {
+    await seedDemo(built);
+  }
 
-app.listen(port, () => {
-  console.log(`Server jalan di http://localhost:${port}`);
+  built.app.listen(config.port, '0.0.0.0', () => {
+    console.log(`Server jalan di http://localhost:${config.port}  [store: ${built.mode}]`);
+    if (built.mode === 'memory') {
+      console.log('Mode DEMO (data hilang saat restart). Akun contoh:');
+      for (const a of DEMO_ACCOUNTS) console.log(`  ${a.role.padEnd(5)} ${a.email} / ${DEMO_PASSWORD}`);
+    }
+  });
+}
+
+main().catch((err) => {
+  console.error('Gagal start server:', err.message);
+  process.exit(1);
 });

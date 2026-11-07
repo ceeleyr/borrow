@@ -182,3 +182,15 @@ Kriteria keberhasilan aplikasi:
 10. Data peminjaman tersimpan dan dapat dilihat sebagai riwayat.
 11. User tidak dapat mengakses fitur khusus admin.
 12. Admin dapat mengelola data barang yang tersedia untuk dipinjam.
+
+# Cara Run Project (2 Terminal)
+## 1. API (data contoh + akun demo, disimpan di memori)
+cd apps/api
+npm install
+npm run start:demo          # http://localhost:3000
+
+## 2. Mobile / web (terminal lain)
+cd apps/mobile
+npm install
+npm run web                 # buka di browser
+# atau: npm start           # lalu scan QR dengan Expo Go

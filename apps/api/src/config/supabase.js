@@ -1,14 +1,17 @@
 const { createClient } = require('@supabase/supabase-js');
-const { supabase: supabaseConfig } = require('./env');
 
-// Admin client: khusus query DB & admin.createUser. JANGAN PERNAH panggil signInWithPassword di sini.
-const supabaseAdmin = createClient(supabaseConfig.url, supabaseConfig.serviceRoleKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+const options = { auth: { autoRefreshToken: false, persistSession: false } };
 
-// Auth client: khusus buat proses login. Terpisah total dari admin client.
-const supabaseAuth = createClient(supabaseConfig.url, supabaseConfig.anonKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+/**
+ * Dua client dengan peran berbeda:
+ *  - admin: service role, untuk query DB, storage & admin.createUser. JANGAN pernah signInWithPassword di sini.
+ *  - auth : anon key, khusus proses login.
+ */
+function createSupabaseClients({ url, serviceRoleKey, anonKey }) {
+  return {
+    adminClient: createClient(url, serviceRoleKey, options),
+    authClient: createClient(url, anonKey, options),
+  };
+}
 
-module.exports = { supabaseAdmin, supabaseAuth };
+module.exports = { createSupabaseClients };

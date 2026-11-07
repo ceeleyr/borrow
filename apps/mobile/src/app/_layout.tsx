@@ -1,21 +1,43 @@
-import "../global.css";
-import { DarkTheme, DefaultTheme, ThemeProvider, Slot } from 'expo-router';
+import '../global.css';
+import { useEffect } from 'react';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { AuthProvider, useAuth } from '@/contexts/auth-context';
+import { Loading } from '@/components/ui';
 
-// import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import { AuthProvider } from '@/contexts/auth-context';
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
-SplashScreen.preventAutoHideAsync();
+function RootNavigator() {
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading) SplashScreen.hideAsync().catch(() => {});
+  }, [isLoading]);
+
+  if (isLoading) return <Loading />;
+
+  // Stack.Protected: rute hanya bisa dibuka bila guard true; selain itu otomatis dialihkan.
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Protected guard={!user}>
+        <Stack.Screen name="(auth)" />
+      </Stack.Protected>
+      <Stack.Protected guard={!!user}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="item/[id]" options={{ headerShown: true, title: 'Detail Barang' }} />
+        <Stack.Screen name="request/[id]" options={{ headerShown: true, title: 'Detail Peminjaman' }} />
+        <Stack.Screen name="admin/item-form" options={{ headerShown: true, title: 'Barang' }} />
+      </Stack.Protected>
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   return (
     <AuthProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        {/* <AnimatedSplashOverlay /> */}
-        <Slot />
-      </ThemeProvider>
+      <StatusBar style="dark" />
+      <RootNavigator />
     </AuthProvider>
   );
 }

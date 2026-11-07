@@ -1,103 +1,73 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Link } from 'expo-router';
 import { useAuth } from '@/contexts/auth-context';
+import { Button, ErrorBanner, Field, Screen } from '@/components/ui';
+import { colors, space } from '@/constants/theme';
+import { validateLoginForm } from '@/lib/validation';
+import { getErrorMessage } from '@/lib/errors';
 
 export default function LoginScreen() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [serverError, setServerError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function handleLogin() {
-    setError('');
+  async function submit() {
+    const found = validateLoginForm({ email, password });
+    setErrors(found);
+    setServerError(null);
+    if (Object.keys(found).length) return;
     setLoading(true);
     try {
-      await login(email, password);
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Login gagal');
+      await login(email, password); // Stack.Protected otomatis mengarahkan ke beranda
+    } catch (e) {
+      setServerError(getErrorMessage(e, 'Gagal masuk'));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Masuk</Text>
+    <Screen>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+          <Text style={styles.logo}>📦</Text>
+          <Text style={styles.title}>Borrow</Text>
+          <Text style={styles.subtitle}>Pinjam barang komunitas dengan mudah</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#999"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#999"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+          <ErrorBanner message={serverError} />
+          <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="nama@email.com" error={errors.email} testID="login-email" />
+          <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry placeholder="Password" error={errors.password} onSubmitEditing={submit} testID="login-password" />
+          <Button title="Masuk" onPress={submit} loading={loading} testID="login-submit" />
 
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          <Link href="/register" style={styles.link}>
+            Belum punya akun? <Text style={{ fontWeight: '700' }}>Daftar</Text>
+          </Link>
 
-      <Pressable style={styles.button} onPress={handleLogin} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Masuk</Text>}
-      </Pressable>
-
-      <Link href="/(auth)/register" style={styles.linkText}>
-        Belum punya akun? Daftar
-      </Link>
-    </View>
+          {__DEV__ ? (
+            <View style={styles.demo}>
+              <Text style={styles.demoTitle}>Akun demo (mode API --memory)</Text>
+              <View style={{ flexDirection: 'row', gap: space.sm }}>
+                <Button small variant="secondary" title="Isi akun User" testID="fill-user" onPress={() => { setEmail('user@borrow.test'); setPassword('password123'); }} />
+                <Button small variant="secondary" title="Isi akun Admin" testID="fill-admin" onPress={() => { setEmail('admin@borrow.test'); setPassword('password123'); }} />
+              </View>
+            </View>
+          ) : null}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    backgroundColor: '#ffffff',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 24,
-    color: '#000000',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 12,
-    color: '#000000',
-    fontSize: 16,
-  },
-  errorText: {
-    color: '#ef4444',
-    marginBottom: 12,
-  },
-  button: {
-    backgroundColor: '#2563eb',
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  linkText: {
-    textAlign: 'center',
-    color: '#2563eb',
-  },
+  container: { padding: space.xl, paddingTop: 64, flexGrow: 1 },
+  logo: { fontSize: 48, textAlign: 'center' },
+  title: { fontSize: 30, fontWeight: '800', textAlign: 'center', color: colors.text },
+  subtitle: { color: colors.muted, textAlign: 'center', marginBottom: space.xl, marginTop: 4 },
+  link: { textAlign: 'center', marginTop: space.lg, color: colors.primary },
+  demo: { marginTop: 32, padding: space.md, borderRadius: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: colors.border, gap: space.sm },
+  demoTitle: { fontSize: 12, color: colors.muted },
 });

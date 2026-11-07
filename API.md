@@ -1,260 +1,55 @@
-# Borrow API Documentation
+# API Reference
 
-Base URL (local dev): `http://localhost:3000`
+Base URL: `http://localhost:3000/api` · Auth: header `Authorization: Bearer <access_token>`
+Format sukses `{ "success": true, "data": ... }` · gagal `{ "success": false, "message": "...", "code": "..." }`
 
-Semua request/response pakai format JSON. Response sukses selalu punya `success: true`, response gagal `success: false` dengan field `message`.
-
-Endpoint yang butuh login harus kirim header:
-```
-Authorization: Bearer <access_token>
-```
-Token didapat dari response `POST /api/auth/login`.
-
----
+Status HTTP: `400` validasi · `401` token hilang/tidak valid · `403` tidak punya akses · `404` tidak ditemukan · `409` konflik aturan bisnis (stok, transisi status, duplikat).
 
 ## Auth
+| Method | Path | Akses | Keterangan |
+|---|---|---|---|
+| POST | `/auth/register` | publik | `{email, password(min 6), full_name}` → profil (role `user`) |
+| POST | `/auth/login` | publik | → `{user, access_token}` |
+| GET | `/auth/me` | login | profil + role (dipakai app untuk memulihkan sesi) |
+| PUT | `/users/me` | login | ubah `full_name` / `avatar_url` |
 
-### Register
-```
-POST /api/auth/register
-```
-Body:
-```json
-{
-  "email": "user@gmail.com",
-  "password": "password123",
-  "full_name": "Nama User"
-}
-```
-Response `201`:
-```json
-{ "success": true, "data": { "id": "uuid", "email": "...", "full_name": "..." } }
-```
+## Barang
+| Method | Path | Akses | Keterangan |
+|---|---|---|---|
+| GET | `/items?search=&category=&status=` | publik | katalog |
+| GET | `/items/:id` | publik | detail |
+| POST | `/items` | admin | `{name, description?, category?, condition(good/fair/poor), quantity, image_url?, status?}` |
+| PUT | `/items/:id` | admin | ubah sebagian field; `quantity` menyesuaikan stok tersedia; `status` = `available`/`unavailable` |
+| DELETE | `/items/:id` | admin | 409 bila sudah punya riwayat peminjaman |
+| POST | `/items/:id/image` | admin | multipart field `image` (jpg/png/webp/gif, maks 5MB) |
 
-### Login
-```
-POST /api/auth/login
-```
-Body:
-```json
-{ "email": "user@gmail.com", "password": "password123" }
-```
-Response `200`:
-```json
-{
-  "success": true,
-  "data": {
-    "user": { "id": "uuid", "email": "...", "...": "..." },
-    "access_token": "eyJ..."
-  }
-}
-```
+Status barang: `available`, `borrowed` (stok habis, otomatis), `unavailable` (dinonaktifkan admin).
 
----
+## Peminjaman (anggota)
+| Method | Path | Akses | Keterangan |
+|---|---|---|---|
+| POST | `/borrow-requests` | user | `{item_id, quantity?=1, borrow_date?(default hari ini), due_date, note?}` format `YYYY-MM-DD`, maks 30 hari |
+| GET | `/borrow-requests/mine?status=` | login | riwayat milik sendiri |
+| GET | `/borrow-requests/:id` | pemilik / admin | detail |
+| PATCH | `/borrow-requests/:id/cancel` | pemilik (pending) / admin | batal |
 
-## Items
+Setiap request memuat `is_overdue` (status `borrowed` dan lewat `due_date`).
 
-### Get all items (public, hanya status `available`)
-```
-GET /api/items
-```
-Tidak perlu auth.
+## Admin (`/admin/*`, role admin)
+| Method | Path | Keterangan |
+|---|---|---|
+| GET | `/admin/stats` | ringkasan dashboard |
+| GET | `/admin/borrow-requests?status=&search=` | semua permintaan / riwayat |
+| PATCH | `/admin/borrow-requests/:id/approve` | `pending → approved`, menahan stok |
+| PATCH | `/admin/borrow-requests/:id/reject` | `pending → rejected` |
+| PATCH | `/admin/borrow-requests/:id/pickup` | `approved → borrowed` (barang diambil) |
+| PATCH | `/admin/borrow-requests/:id/return` | `borrowed → returned`, stok kembali |
+| PATCH | `/admin/borrow-requests/:id/cancel` | batalkan `pending`/`approved` (stok dikembalikan) |
+| GET | `/admin/users` · `/users` · `/users/:id` | daftar / detail pengguna |
+| PATCH | `/admin/users/:id/role` | `{role: "user"|"admin"}` (tidak bisa untuk diri sendiri) |
+| DELETE | `/admin/users/:id` | 409 bila punya riwayat; tidak bisa hapus diri sendiri |
 
-### Get item by ID
-```
-GET /api/items/:id
-```
-Tidak perlu auth.
+Body opsional untuk approve/reject/return/cancel: `{ "admin_note": "..." }`.
 
-### Create item (auth required)
-```
-POST /api/items
-```
-Header: `Authorization: Bearer <token>`
-Body:
-```json
-{
-  "name": "Bor Listrik",
-  "description": "Bor listrik Bosch",
-  "category": "tools",
-  "condition": "good"
-}
-```
-Item baru otomatis berstatus `pending`, menunggu approve admin sebelum muncul di `GET /api/items` publik.
-
-### Update item (auth required, hanya owner)
-```
-PUT /api/items/:id
-```
-Header: `Authorization: Bearer <token>`
-Body (partial update, kirim field yang mau diubah saja):
-```json
-{ "status": "unavailable" }
-```
-Response `403` kalau bukan owner item tersebut.
-
-### Delete item (auth required, hanya owner)
-```
-DELETE /api/items/:id
-```
-Header: `Authorization: Bearer <token>`
-
-### Upload gambar item (auth required, hanya owner)
-```
-POST /api/items/:id/image
-```
-Header: `Authorization: Bearer <token>`
-Body: `form-data`, key `image` (type **File**)
-Response: item dengan `image_url` terisi link Supabase Storage.
-
----
-
-## Borrow Requests
-
-### Ajukan pinjam item (auth required)
-```
-POST /api/borrow-requests
-```
-Header: `Authorization: Bearer <token>`
-Body:
-```json
-{ "item_id": "uuid-item" }
-```
-Validasi: tidak bisa pinjam barang sendiri, item harus berstatus `available`.
-
-### Lihat request yang saya ajukan (auth required)
-```
-GET /api/borrow-requests/mine
-```
-Header: `Authorization: Bearer <token>`
-
-### Lihat request masuk untuk item saya (auth required, sebagai owner)
-```
-GET /api/borrow-requests/received
-```
-Header: `Authorization: Bearer <token>`
-
-### Approve request (auth required, hanya owner item)
-```
-PATCH /api/borrow-requests/:id/approve
-```
-Header: `Authorization: Bearer <token>`
-Efek: status request jadi `approved`, status item jadi `borrowed`.
-
-### Reject request (auth required, hanya owner item)
-```
-PATCH /api/borrow-requests/:id/reject
-```
-Header: `Authorization: Bearer <token>`
-
-### Return item (auth required, owner atau borrower)
-```
-PATCH /api/borrow-requests/:id/return
-```
-Header: `Authorization: Bearer <token>`
-Efek: status request jadi `returned`, status item balik jadi `available`.
-
----
-
-## Users
-
-### Get all users
-```
-GET /api/users
-```
-Tidak perlu auth (pertimbangkan di-protect nanti kalau mau private).
-
-### Get user by ID
-```
-GET /api/users/:id
-```
-Tidak perlu auth.
-
----
-
-## Admin
-
-Semua endpoint di bawah ini butuh `Authorization: Bearer <token>` **dan** user tersebut harus punya `role: 'admin'` di tabel `profiles` (di-set manual lewat SQL Editor Supabase untuk sekarang).
-
-### Lihat semua item (termasuk pending/rejected)
-```
-GET /api/admin/items
-```
-
-### Approve item (moderasi, item jadi `available`)
-```
-PATCH /api/admin/items/:id/approve
-```
-
-### Reject item (item jadi `rejected`)
-```
-PATCH /api/admin/items/:id/reject
-```
-
-### Hapus item (admin, siapa pun pemiliknya)
-```
-DELETE /api/admin/items/:id
-```
-
-### Lihat semua user
-```
-GET /api/admin/users
-```
-
-### Hapus user
-```
-DELETE /api/admin/users/:id
-```
-
-### Lihat semua borrow request (dari semua user)
-```
-GET /api/admin/borrow-requests
-```
-
-### Approve borrow request (bypass ownership check)
-```
-PATCH /api/admin/borrow-requests/:id/approve
-```
-
-### Reject borrow request (bypass ownership check)
-```
-PATCH /api/admin/borrow-requests/:id/reject
-```
-
-### Statistik sistem
-```
-GET /api/admin/stats
-```
-Response:
-```json
-{
-  "success": true,
-  "data": {
-    "totalUsers": 0,
-    "totalItems": 0,
-    "totalRequests": 0,
-    "activeBorrows": 0
-  }
-}
-```
-
----
-
-## Status Values Reference
-
-**Item status:** `pending` → `available` / `rejected` → `borrowed` → `available` (lagi, setelah return)
-
-**Borrow request status:** `pending` → `approved` / `rejected` → `returned` (setelah approved)
-
-**User role:** `user` (default) atau `admin`
-
----
-
-## Known Gaps / Belum Diimplementasi
-
-- Edit profil user (update nama, avatar sendiri)
-- Cancel request oleh borrower (status `pending` → batal)
-- Search/filter items (by kategori, nama)
-- Pagination untuk list endpoint
-- Forgot password
-- Endpoint untuk assign role admin ke user lain (masih manual via SQL)
+## Perubahan dari versi awal
+Barang kini **dikelola admin** (sesuai spesifikasi), bukan milik user: moderasi `pending/rejected` pada barang, endpoint `/borrow-requests/received` dan approve/reject oleh pemilik dihapus; digantikan alur admin di atas. `GET /users` kini khusus admin.

@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { services } from '@/services/client';
 import { useAuth } from '@/contexts/auth-context';
 import { ErrorBanner, Header, Loading, SectionTitle, Screen } from '@/components/ui';
 import { RequestCard } from './requests-list';
-import { colors, space, toneColors } from '@/constants/theme';
+import { colors, MAX_WIDTH, space, toneColors } from '@/constants/theme';
 import type { Tone } from '@/lib/status';
 import { useLoad } from '@/hooks/use-load';
 
@@ -20,6 +20,8 @@ type StatCardItem = {
 
 export function Dashboard() {
   const router = useRouter();
+  const { width: viewportWidth } = useWindowDimensions();
+  const cardWidth = (Math.min(viewportWidth, MAX_WIDTH) - space.lg * 2 - space.md) / 2;
   const { user, isSuperAdmin } = useAuth();
   const stats = useLoad(() => services.admin.stats());
   const pending = useLoad(() => services.admin.requests({ status: 'pending' }));
@@ -99,6 +101,7 @@ export function Dashboard() {
                   onPress={c.go}
                   style={({ pressed }) => [
                     styles.statCard,
+                    { width: cardWidth },
                     pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
                   ]}
                   testID={`stat-${c.key}`}
@@ -137,13 +140,11 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
     rowGap: space.md,
     columnGap: space.md,
     marginBottom: space.lg,
   },
   statCard: {
-    width: '48%',
     backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 16,

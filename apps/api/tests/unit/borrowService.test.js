@@ -5,6 +5,7 @@ const { createTestContext } = require('../helpers/factory');
 async function setup(quantity = 2) {
   const ctx = await createTestContext();
   ctx.admin = (await ctx.makeUser('Admin Satu', { role: 'admin' })).user;
+  ctx.superadmin = (await ctx.makeUser('Superadmin Satu', { role: 'superadmin' })).user;
   ctx.budi = (await ctx.makeUser('Budi')).user;
   ctx.sari = (await ctx.makeUser('Sari')).user;
   ctx.item = await ctx.services.items.create(ctx.admin, { name: 'Proyektor', quantity });
@@ -169,6 +170,17 @@ test('cancel tidak bisa untuk status borrowed/returned', async () => {
   await services.borrows.approve(admin, r.id, {});
   await services.borrows.pickup(admin, r.id);
   await assert.rejects(services.borrows.cancel(admin, r.id, {}), (e) => e.code === 'INVALID_TRANSITION');
+});
+
+test('superadmin dapat mengakses detail dan membatalkan request sebagai admin', async () => {
+  const { services, budi, superadmin, item, stock } = await setup();
+  const r = await services.borrows.create(budi, body(item));
+  assert.equal((await services.borrows.get(superadmin, r.id)).borrower_id, budi.id);
+  await services.borrows.approve(superadmin, r.id, {});
+  const cancelled = await services.borrows.cancel(superadmin, r.id, { admin_note: 'Dibatalkan admin' });
+  assert.equal(cancelled.status, 'cancelled');
+  assert.equal(cancelled.admin_note, 'Dibatalkan admin');
+  assert.equal(await stock(), 2);
 });
 
 // ---------- read ----------

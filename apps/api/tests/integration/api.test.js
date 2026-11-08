@@ -7,12 +7,13 @@ const { createTestContext, startServer } = require('../helpers/factory');
 // 1x1 PNG
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
 
-let ctx, srv, admin, budi, sari;
+let ctx, srv, admin, superadmin, budi, sari;
 
 test.before(async () => {
   ctx = await createTestContext();
   srv = await startServer(ctx.app);
   admin = await ctx.makeUser('Admin Satu', { role: 'admin' });
+  superadmin = await ctx.makeUser('Superadmin Satu', { role: 'superadmin' });
   budi = await ctx.makeUser('Budi');
   sari = await ctx.makeUser('Sari');
 });
@@ -99,6 +100,21 @@ test('admin tidak mengajukan peminjaman (khusus user)', async () => {
   assert.equal(r.status, 403);
 });
 
+test('admin biasa tidak bisa mengelola pengguna', async () => {
+  const checks = [
+    ['GET', '/api/users'],
+    ['GET', '/api/users'],
+    ['GET', `/api/users/${budi.user.id}`],
+    ['GET', '/api/admin/users'],
+    ['PATCH', `/api/admin/users/${budi.user.id}/role`, { role: 'admin' }],
+    ['DELETE', `/api/admin/users/${budi.user.id}`],
+  ];
+  for (const [method, url, body] of checks) {
+    const response = await api(method, url, { token: admin.token, body });
+    assert.equal(response.status, 403, `${method} ${url}`);
+  }
+});
+
 // ---------------- Barang ----------------
 let itemId;
 test('admin CRUD barang + katalog publik', async () => {
@@ -157,6 +173,7 @@ test('alur lengkap via HTTP: ajukan -> approve -> pickup -> return -> riwayat', 
   assert.equal(create.status, 201);
   const id = create.body.data.id;
   assert.equal(create.body.data.status, 'pending');
+  assert.equal(create.body.data.borrow_date, '2026-11-02T00:00:00');
 
   // user tidak bisa memproses requestnya sendiri
   assert.equal((await api('PATCH', `/api/admin/borrow-requests/${id}/approve`, { token: budi.token })).status, 403);
@@ -229,25 +246,29 @@ test('hapus barang yang punya riwayat -> 409; barang baru bisa dihapus', async (
 });
 
 // ---------------- Admin: stats & user ----------------
-test('admin stats & manajemen user', async () => {
+test('admin stats & superadmin manajemen user', async () => {
   const stats = await api('GET', '/api/admin/stats', { token: admin.token });
   assert.equal(stats.status, 200);
   assert.equal(stats.body.data.totalItems, 1);
   assert.equal(stats.body.data.totalRequests, 3);
   assert.equal(stats.body.data.pendingRequests, 0);
 
-  const users = await api('GET', '/api/admin/users', { token: admin.token });
+  const users = await api('GET', '/api/admin/users', { token: superadmin.token });
   assert.ok(users.body.data.length >= 3);
+  assert.equal((await api('GET', '/api/users', { token: superadmin.token })).status, 200);
 
-  const promote = await api('PATCH', `/api/admin/users/${sari.user.id}/role`, { token: admin.token, body: { role: 'admin' } });
+  const promoteSuperadmin = await api('PATCH', `/api/admin/users/${sari.user.id}/role`, { token: superadmin.token, body: { role: 'superadmin' } });
+  assert.equal(promoteSuperadmin.body.data.role, 'superadmin');
+  assert.equal((await api('GET', '/api/admin/users', { token: sari.token })).status, 200);
+  const promote = await api('PATCH', `/api/admin/users/${sari.user.id}/role`, { token: superadmin.token, body: { role: 'admin' } });
   assert.equal(promote.body.data.role, 'admin');
   // token Sari yang sama langsung punya akses admin (role dibaca fresh)
   assert.equal((await api('GET', '/api/admin/stats', { token: sari.token })).status, 200);
-  const demote = await api('PATCH', `/api/admin/users/${sari.user.id}/role`, { token: admin.token, body: { role: 'user' } });
+  const demote = await api('PATCH', `/api/admin/users/${sari.user.id}/role`, { token: superadmin.token, body: { role: 'user' } });
   assert.equal(demote.body.data.role, 'user');
   assert.equal((await api('GET', '/api/admin/stats', { token: sari.token })).status, 403);
 
-  assert.equal((await api('PATCH', `/api/admin/users/${admin.user.id}/role`, { token: admin.token, body: { role: 'user' } })).status, 400);
-  assert.equal((await api('DELETE', `/api/admin/users/${budi.user.id}`, { token: admin.token })).status, 409); // punya riwayat
-  assert.equal((await api('GET', `/api/users/${budi.user.id}`, { token: admin.token })).body.data.email, budi.email);
+  assert.equal((await api('PATCH', `/api/admin/users/${superadmin.user.id}/role`, { token: superadmin.token, body: { role: 'admin' } })).status, 400);
+  assert.equal((await api('DELETE', `/api/admin/users/${budi.user.id}`, { token: superadmin.token })).status, 409); // punya riwayat
+  assert.equal((await api('GET', `/api/users/${budi.user.id}`, { token: superadmin.token })).body.data.email, budi.email);
 });

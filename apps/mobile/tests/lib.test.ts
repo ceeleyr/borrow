@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addDays, diffDays, formatDate, formatDateTime, isValidDateString, todayString, validateLoanDates } from '../src/lib/dates.ts';
+import { addDays, diffDays, formatDate, formatDateTime, isValidDateString, isValidDateTimeString, todayString, toDateTimeString, validateLoanDates } from '../src/lib/dates.ts';
 import { ACTION_LABEL, availableActions, borrowLabel, borrowTone, itemStatusInfo, BORROW_STATUSES } from '../src/lib/status.ts';
 import { validateBorrowForm, validateItemForm, validateLoginForm, validateRegisterForm } from '../src/lib/validation.ts';
 import { resolveApiBaseUrl } from '../src/lib/api-url.ts';
@@ -12,6 +12,10 @@ test('dates: todayString memakai tanggal lokal, addDays/diffDays', () => {
   assert.equal(diffDays('2026-11-01', '2026-11-04'), 3);
   assert.equal(isValidDateString('2027-02-29'), false);
   assert.equal(isValidDateString('2028-02-29'), true);
+  assert.equal(toDateTimeString('2026-11-04'), '2026-11-04T00:00:00');
+  assert.equal(toDateTimeString(new Date(2026, 10, 4)), '2026-11-04T00:00:00');
+  assert.equal(isValidDateTimeString('2026-11-04T09:30:00'), true);
+  assert.equal(isValidDateTimeString('2026-11-04T25:30:00'), false);
 });
 
 test('dates: format tampilan', () => {
@@ -26,6 +30,7 @@ test('dates: format tampilan', () => {
 test('dates: validateLoanDates', () => {
   const today = '2026-11-04';
   assert.equal(validateLoanDates('2026-11-04', '2026-11-07', today), null);
+  assert.equal(validateLoanDates('2026-11-04T00:00:00', '2026-11-07', today), null);
   assert.match(validateLoanDates('2026-11-03', '2026-11-07', today)!, /masa lalu/);
   assert.match(validateLoanDates('2026-11-05', '2026-11-04', today)!, /sebelum/);
   assert.match(validateLoanDates('2026-11-04', '2026-12-30', today)!, /maksimal 30/);

@@ -1,6 +1,7 @@
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const DATETIME_RE = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/;
 
 export const MAX_LOAN_DAYS = 30;
 
@@ -10,6 +11,19 @@ export function isValidDateString(value: unknown): value is string {
   if (typeof value !== 'string' || !DATE_RE.test(value)) return false;
   const d = new Date(`${value}T00:00:00Z`);
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+}
+
+export function isValidDateTimeString(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const match = DATETIME_RE.exec(value);
+  if (!match || !isValidDateString(match[1])) return false;
+  const [, , hours, minutes, seconds = '0'] = match;
+  return Number(hours) < 24 && Number(minutes) < 60 && Number(seconds) < 60;
+}
+
+export function toDateTimeString(date: Date | string): string {
+  if (typeof date === 'string') return `${date.slice(0, 10)}T00:00:00`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T00:00:00`;
 }
 
 /** Tanggal lokal perangkat dalam format YYYY-MM-DD. */
@@ -42,10 +56,11 @@ export function formatDateTime(iso: string | null | undefined): string {
 
 /** Pesan error (atau null bila valid) untuk pasangan tanggal pinjam & kembali. */
 export function validateLoanDates(borrowDate: string, dueDate: string, today: string): string | null {
-  if (!isValidDateString(borrowDate)) return 'Tanggal pinjam harus format YYYY-MM-DD';
+  const borrowDay = borrowDate.slice(0, 10);
+  if (!(isValidDateString(borrowDate) || isValidDateTimeString(borrowDate))) return 'Tanggal pinjam harus format YYYY-MM-DDTHH:mm:ss';
   if (!isValidDateString(dueDate)) return 'Tanggal kembali harus format YYYY-MM-DD';
-  if (borrowDate < today) return 'Tanggal pinjam tidak boleh di masa lalu';
-  if (dueDate < borrowDate) return 'Tanggal kembali tidak boleh sebelum tanggal pinjam';
-  if (diffDays(borrowDate, dueDate) > MAX_LOAN_DAYS) return `Durasi pinjam maksimal ${MAX_LOAN_DAYS} hari`;
+  if (borrowDay < today) return 'Tanggal pinjam tidak boleh di masa lalu';
+  if (dueDate < borrowDay) return 'Tanggal kembali tidak boleh sebelum tanggal pinjam';
+  if (diffDays(borrowDay, dueDate) > MAX_LOAN_DAYS) return `Durasi pinjam maksimal ${MAX_LOAN_DAYS} hari`;
   return null;
 }

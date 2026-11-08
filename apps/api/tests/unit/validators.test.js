@@ -42,9 +42,11 @@ test('validateItem (partial): minimal satu field', () => {
 
 test('validateBorrowRequest: kasus valid', () => {
   const r = v.validateBorrowRequest({ item_id: 'i1', borrow_date: '2026-11-03', due_date: '2026-11-06', quantity: '2', note: ' halo ' }, NOW);
-  assert.deepEqual(r, { item_id: 'i1', quantity: 2, borrow_date: '2026-11-03', due_date: '2026-11-06', note: 'halo' });
+  assert.deepEqual(r, { item_id: 'i1', quantity: 2, borrow_date: '2026-11-03T00:00:00', due_date: '2026-11-06', note: 'halo' });
+  const withTime = v.validateBorrowRequest({ item_id: 'i1', borrow_date: '2026-11-03T09:30:00', due_date: '2026-11-06' }, NOW);
+  assert.equal(withTime.borrow_date, '2026-11-03T09:30:00');
   // borrow_date default = hari ini
-  assert.equal(v.validateBorrowRequest({ item_id: 'i1', due_date: '2026-11-04' }, NOW).borrow_date, '2026-11-02');
+  assert.equal(v.validateBorrowRequest({ item_id: 'i1', due_date: '2026-11-04' }, NOW).borrow_date, '2026-11-02T00:00:00');
 });
 
 test('validateBorrowRequest: kasus tidak valid', () => {
@@ -54,6 +56,7 @@ test('validateBorrowRequest: kasus tidak valid', () => {
   throwsBad(() => v.validateBorrowRequest({ ...base, due_date: '2026-11-02' }, NOW), /sebelum tanggal pinjam/);
   throwsBad(() => v.validateBorrowRequest({ ...base, borrow_date: '2026-10-20' }, NOW), /masa lalu/);
   throwsBad(() => v.validateBorrowRequest({ ...base, borrow_date: 'besok' }, NOW), /borrow_date/);
+  throwsBad(() => v.validateBorrowRequest({ ...base, borrow_date: '2026-11-03T25:00:00' }, NOW), /borrow_date/);
   throwsBad(() => v.validateBorrowRequest({ ...base, due_date: '2026-12-31' }, NOW), /maksimal 30 hari/);
   throwsBad(() => v.validateBorrowRequest({ ...base, quantity: -1 }, NOW), /minimal 1/);
   // toleransi 1 hari ke belakang (beda zona waktu) masih boleh

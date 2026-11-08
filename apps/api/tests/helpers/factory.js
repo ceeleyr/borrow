@@ -28,7 +28,7 @@ async function createTestContext() {
   async function makeUser(name, { role = 'user' } = {}) {
     const email = `${name.toLowerCase().replace(/\s+/g, '.')}@test.dev`;
     const created = await services.auth.register({ email, password: 'secret123', full_name: name });
-    const user = role === 'admin' ? await repos.profiles.update(created.id, { role }) : created;
+    const user = role === 'user' ? created : await repos.profiles.update(created.id, { role });
     const { access_token } = await services.auth.login({ email, password: 'secret123' });
     return { user, token: access_token, email };
   }

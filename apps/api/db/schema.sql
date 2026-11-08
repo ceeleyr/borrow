@@ -107,7 +107,7 @@ create table if not exists public.borrow_requests (
   item_id       uuid not null references public.items(id) on delete restrict,
   borrower_id   uuid not null references public.profiles(id) on delete restrict,
   quantity      integer not null default 1,
-  borrow_date   date not null default current_date,
+  borrow_date   timestamp without time zone not null default (current_date::timestamp),
   due_date      date,
   note          text,
   admin_note    text,
@@ -123,7 +123,7 @@ create table if not exists public.borrow_requests (
 
 -- Kolom baru untuk skema lama
 alter table public.borrow_requests add column if not exists quantity     integer not null default 1;
-alter table public.borrow_requests add column if not exists borrow_date  date not null default current_date;
+alter table public.borrow_requests add column if not exists borrow_date  timestamp without time zone not null default (current_date::timestamp);
 alter table public.borrow_requests add column if not exists due_date     date;
 alter table public.borrow_requests add column if not exists note         text;
 alter table public.borrow_requests add column if not exists admin_note   text;
@@ -131,7 +131,12 @@ alter table public.borrow_requests add column if not exists picked_up_at timesta
 alter table public.borrow_requests add column if not exists rejected_at  timestamptz;
 alter table public.borrow_requests add column if not exists cancelled_at timestamptz;
 
-update public.borrow_requests set due_date = borrow_date + 7 where due_date is null;
+alter table public.borrow_requests drop constraint if exists borrow_requests_dates_check;
+alter table public.borrow_requests alter column borrow_date drop default;
+alter table public.borrow_requests alter column borrow_date type timestamp without time zone using borrow_date::timestamp;
+alter table public.borrow_requests alter column borrow_date set default (current_date::timestamp);
+
+update public.borrow_requests set due_date = borrow_date::date + 7 where due_date is null;
 alter table public.borrow_requests alter column due_date set not null;
 
 alter table public.borrow_requests drop constraint if exists borrow_requests_status_check;
@@ -139,8 +144,7 @@ alter table public.borrow_requests add constraint borrow_requests_status_check
   check (status in ('pending', 'approved', 'borrowed', 'returned', 'rejected', 'cancelled'));
 alter table public.borrow_requests drop constraint if exists borrow_requests_quantity_check;
 alter table public.borrow_requests add constraint borrow_requests_quantity_check check (quantity >= 1);
-alter table public.borrow_requests drop constraint if exists borrow_requests_dates_check;
-alter table public.borrow_requests add constraint borrow_requests_dates_check check (due_date >= borrow_date);
+alter table public.borrow_requests add constraint borrow_requests_dates_check check (due_date >= borrow_date::date);
 
 create index if not exists borrow_requests_borrower_idx on public.borrow_requests (borrower_id, requested_at desc);
 create index if not exists borrow_requests_item_idx     on public.borrow_requests (item_id);

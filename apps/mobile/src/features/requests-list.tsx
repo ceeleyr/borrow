@@ -31,7 +31,8 @@ export function RequestCard({ r, admin, onPress }: { r: BorrowRequest; admin: bo
 export function RequestsList({ admin }: { admin: boolean }) {
   const router = useRouter();
   const params = useLocalSearchParams<{ status?: string }>();
-  const initial = BORROW_STATUSES.includes(params.status as BorrowStatus) ? (params.status as BorrowStatus) : '';
+  const filterStatuses: BorrowStatus[] = BORROW_STATUSES.filter((s) => s !== 'borrowed');
+  const initial = filterStatuses.includes(params.status as BorrowStatus) ? (params.status as BorrowStatus) : '';
   const [status, setStatus] = useState<BorrowStatus | ''>(initial);
   const [search, setSearch] = useState('');
   const debounced = useDebounced(search);
@@ -48,7 +49,7 @@ export function RequestsList({ admin }: { admin: boolean }) {
         {admin ? <Field label="Cari peminjam / barang" value={search} onChangeText={setSearch} placeholder="Nama peminjam atau barang" testID="search-requests" /> : null}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: space.md }}>
           <Chip label="Semua" active={status === ''} onPress={() => setStatus('')} testID="filter-all" />
-          {BORROW_STATUSES.map((s) => (
+          {filterStatuses.map((s) => (
             <Chip key={s} label={BORROW_STATUS_LABEL[s]} active={status === s} onPress={() => setStatus(s)} testID={`filter-${s}`} />
           ))}
         </ScrollView>

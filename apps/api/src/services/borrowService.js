@@ -6,6 +6,7 @@ const { BORROW_STATUS: S, ITEM_STATUS, ACTIVE_BORROW_STATUSES, ROLES } = require
 function createBorrowService({ borrows, items, clock = () => new Date() }) {
   const decorate = (r) => (r ? { ...r, is_overdue: isOverdue(r, clock()) } : r);
   const nowIso = () => clock().toISOString();
+  const hasAdminAccess = (actor) => actor.role === ROLES.ADMIN || actor.role === ROLES.SUPERADMIN;
 
   async function mustFind(id) {
     const r = await borrows.findById(id);
@@ -53,7 +54,7 @@ function createBorrowService({ borrows, items, clock = () => new Date() }) {
 
     async get(actor, id) {
       const r = await mustFind(id);
-      if (actor.role !== ROLES.ADMIN && r.borrower_id !== actor.id) {
+      if (!hasAdminAccess(actor) && r.borrower_id !== actor.id) {
         throw forbidden('Kamu tidak punya akses untuk request ini');
       }
       return decorate(r);
@@ -62,7 +63,7 @@ function createBorrowService({ borrows, items, clock = () => new Date() }) {
     /** Peminjam membatalkan request pending-nya; admin boleh membatalkan pending/approved. */
     async cancel(actor, id, body) {
       const r = await mustFind(id);
-      const isAdmin = actor.role === ROLES.ADMIN;
+      const isAdmin = hasAdminAccess(actor);
 
       if (!isAdmin) {
         if (r.borrower_id !== actor.id) throw forbidden('Kamu tidak punya akses untuk request ini');

@@ -34,28 +34,28 @@ Status barang: `available`, `borrowed` (stok habis, otomatis), `unavailable` (di
 ## Peminjaman (anggota)
 | Method | Path | Akses | Keterangan |
 |---|---|---|---|
-| POST | `/borrow-requests` | user | `{item_id, quantity?=1, borrow_date?(default hari ini), due_date, note?}` format `YYYY-MM-DD`, maks 30 hari |
+| POST | `/borrow-requests` | user | `{item_id, quantity?=1, borrow_date?(default hari ini), due_date, note?}` `borrow_date` berupa tanggal/datetime lokal (`YYYY-MM-DDTHH:mm:ss`), `due_date` format `YYYY-MM-DD`, maks 30 hari |
 | GET | `/borrow-requests/mine?status=` | login | riwayat milik sendiri |
 | GET | `/borrow-requests/:id` | pemilik / admin | detail |
 | PATCH | `/borrow-requests/:id/cancel` | pemilik (pending) / admin | batal |
 
 Setiap request memuat `is_overdue` (status `borrowed` dan lewat `due_date`).
 
-## Admin (`/admin/*`, role admin)
-| Method | Path | Keterangan |
-|---|---|---|
-| GET | `/admin/stats` | ringkasan dashboard |
-| GET | `/admin/borrow-requests?status=&search=` | semua permintaan / riwayat |
-| PATCH | `/admin/borrow-requests/:id/approve` | `pending → approved`, menahan stok |
-| PATCH | `/admin/borrow-requests/:id/reject` | `pending → rejected` |
-| PATCH | `/admin/borrow-requests/:id/pickup` | `approved → borrowed` (barang diambil) |
-| PATCH | `/admin/borrow-requests/:id/return` | `borrowed → returned`, stok kembali |
-| PATCH | `/admin/borrow-requests/:id/cancel` | batalkan `pending`/`approved` (stok dikembalikan) |
-| GET | `/admin/users` · `/users` · `/users/:id` | daftar / detail pengguna |
-| PATCH | `/admin/users/:id/role` | `{role: "user"|"admin"}` (tidak bisa untuk diri sendiri) |
-| DELETE | `/admin/users/:id` | 409 bila punya riwayat; tidak bisa hapus diri sendiri |
+## Admin (`/admin/*`, role admin atau superadmin)
+| Method | Path | Akses | Keterangan |
+|---|---|---|---|
+| GET | `/admin/stats` | admin / superadmin | ringkasan dashboard |
+| GET | `/admin/borrow-requests?status=&search=` | admin / superadmin | semua permintaan / riwayat |
+| PATCH | `/admin/borrow-requests/:id/approve` | admin / superadmin | `pending → approved`, menahan stok |
+| PATCH | `/admin/borrow-requests/:id/reject` | admin / superadmin | `pending → rejected` |
+| PATCH | `/admin/borrow-requests/:id/pickup` | admin / superadmin | `approved → borrowed` (barang diambil) |
+| PATCH | `/admin/borrow-requests/:id/return` | admin / superadmin | `borrowed → returned`, stok kembali |
+| PATCH | `/admin/borrow-requests/:id/cancel` | admin / superadmin | batalkan `pending`/`approved` (stok dikembalikan) |
+| GET | `/admin/users` · `/users` · `/users/:id` | superadmin | daftar / detail pengguna |
+| PATCH | `/admin/users/:id/role` | superadmin | `{role: "user"|"admin"|"superadmin"}` (tidak bisa untuk diri sendiri) |
+| DELETE | `/admin/users/:id` | superadmin | 409 bila punya riwayat; tidak bisa hapus diri sendiri |
 
 Body opsional untuk approve/reject/return/cancel: `{ "admin_note": "..." }`.
 
 ## Perubahan dari versi awal
-Barang kini **dikelola admin** (sesuai spesifikasi), bukan milik user: moderasi `pending/rejected` pada barang, endpoint `/borrow-requests/received` dan approve/reject oleh pemilik dihapus; digantikan alur admin di atas. `GET /users` kini khusus admin.
+Barang kini **dikelola admin** (sesuai spesifikasi), bukan milik user: moderasi `pending/rejected` pada barang, endpoint `/borrow-requests/received` dan approve/reject oleh pemilik dihapus; digantikan alur admin di atas. `GET /users` dan seluruh endpoint manajemen pengguna kini khusus superadmin; admin tetap bisa mengelola barang dan permintaan.

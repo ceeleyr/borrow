@@ -4,9 +4,10 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { services } from '@/services/client';
 import { useAuth } from '@/contexts/auth-context';
 import { Badge, Button, Card, Chip, ErrorBanner, Field, KeyValue, Loading, Screen, SectionTitle, Stepper, Thumb } from '@/components/ui';
+import { DatePickerField } from '@/components/date-picker-field';
 import { colors, radius, space } from '@/constants/theme';
 import { CONDITION_LABEL, itemStatusInfo } from '@/lib/status';
-import { addDays, formatDate, todayString } from '@/lib/dates';
+import { addDays, formatDate, todayString, toDateTimeString } from '@/lib/dates';
 import { validateBorrowForm } from '@/lib/validation';
 import { confirmAction, notify } from '@/lib/dialog';
 import { getErrorMessage } from '@/lib/errors';
@@ -22,7 +23,7 @@ export default function ItemDetailScreen() {
 
   const today = useMemo(() => todayString(), []);
   const [qty, setQty] = useState(1);
-  const [borrowDate, setBorrowDate] = useState(today);
+  const [borrowDate, setBorrowDate] = useState(toDateTimeString(today));
   const [dueDate, setDueDate] = useState(addDays(today, 3));
   const [note, setNote] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
@@ -32,6 +33,12 @@ export default function ItemDetailScreen() {
   if (!item) return <Screen><View style={{ padding: space.lg }}><ErrorBanner message={error ?? 'Barang tidak ditemukan'} /></View></Screen>;
 
   const info = itemStatusInfo(item);
+
+  function updateBorrowDate(value: string) {
+    const nextDate = value.slice(0, 10);
+    setBorrowDate(value);
+    if (dueDate < nextDate) setDueDate(addDays(nextDate, 3));
+  }
 
   async function submit() {
     if (!item) return;
@@ -93,11 +100,11 @@ export default function ItemDetailScreen() {
               <Text style={styles.label}>Jumlah</Text>
               <Stepper value={qty} min={1} max={item.available_quantity} onChange={setQty} />
               <View style={{ height: space.md }} />
-              <Field label="Tanggal pinjam (YYYY-MM-DD)" value={borrowDate} onChangeText={setBorrowDate} autoCapitalize="none" testID="borrow-date" />
-              <Field label="Rencana tanggal kembali (YYYY-MM-DD)" value={dueDate} onChangeText={setDueDate} autoCapitalize="none" testID="due-date" />
+              <DatePickerField label="Tanggal pinjam" value={borrowDate} onChange={updateBorrowDate} includeTime testID="borrow-date" />
+              <DatePickerField label="Rencana tanggal kembali" value={dueDate} onChange={setDueDate} minimumDate={borrowDate} testID="due-date" />
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: space.md }}>
                 {DURATIONS.map((d) => (
-                  <Chip key={d} label={`${d} hari`} testID={`dur-${d}`} active={dueDate === addDays(borrowDate, d)} onPress={() => setDueDate(addDays(borrowDate, d))} />
+                  <Chip key={d} label={`${d} hari`} testID={`dur-${d}`} active={dueDate === addDays(borrowDate.slice(0, 10), d)} onPress={() => setDueDate(addDays(borrowDate.slice(0, 10), d))} />
                 ))}
               </View>
               <Text style={styles.hint}>Kembali pada {formatDate(dueDate)}</Text>

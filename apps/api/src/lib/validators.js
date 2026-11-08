@@ -1,6 +1,6 @@
 const { badRequest } = require('./errors');
 const { ITEM_CONDITIONS, ROLES, MAX_LOAN_DAYS } = require('../models/constants');
-const { isValidDateString, diffDays, addDays, toDateString } = require('./dates');
+const { isValidDateString, isValidDateTimeString, diffDays, addDays, toDateString } = require('./dates');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -133,18 +133,22 @@ function validateBorrowRequest(body = {}, now = new Date()) {
     body.quantity === undefined ? 1 : parseIntStrict(body.quantity, 'quantity', { min: 1, max: 1000 });
 
   const today = toDateString(now);
-  const borrow_date = body.borrow_date === undefined ? today : body.borrow_date;
+  const borrowDateInput = body.borrow_date === undefined ? today : body.borrow_date;
   const due_date = body.due_date;
+  const borrowDay = typeof borrowDateInput === 'string' ? borrowDateInput.slice(0, 10) : '';
 
-  if (!isValidDateString(borrow_date)) throw badRequest('borrow_date harus format YYYY-MM-DD');
+  if (!isValidDateString(borrowDateInput) && !isValidDateTimeString(borrowDateInput)) {
+    throw badRequest('borrow_date harus tanggal atau datetime lokal yang valid');
+  }
   if (!isValidDateString(due_date)) throw badRequest('due_date (rencana pengembalian) wajib format YYYY-MM-DD');
-  if (borrow_date < addDays(today, -1)) throw badRequest('Tanggal pinjam tidak boleh di masa lalu');
-  if (due_date < borrow_date) throw badRequest('Tanggal kembali tidak boleh sebelum tanggal pinjam');
-  if (diffDays(borrow_date, due_date) > MAX_LOAN_DAYS) {
+  if (borrowDay < addDays(today, -1)) throw badRequest('Tanggal pinjam tidak boleh di masa lalu');
+  if (due_date < borrowDay) throw badRequest('Tanggal kembali tidak boleh sebelum tanggal pinjam');
+  if (diffDays(borrowDay, due_date) > MAX_LOAN_DAYS) {
     throw badRequest(`Durasi pinjam maksimal ${MAX_LOAN_DAYS} hari`);
   }
 
   const note = optionalStr(body.note, 'note', 300);
+  const borrow_date = isValidDateString(borrowDateInput) ? `${borrowDateInput}T00:00:00` : borrowDateInput;
   return { item_id, quantity, borrow_date, due_date, note: note ?? null };
 }
 

@@ -1,4 +1,4 @@
-const ROLES = Object.freeze({ USER: 'user', ADMIN: 'admin' });
+const ROLES = Object.freeze({ USER: 'user', ADMIN: 'admin', SUPERADMIN: 'superadmin' });
 
 const ITEM_STATUS = Object.freeze({
   AVAILABLE: 'available',

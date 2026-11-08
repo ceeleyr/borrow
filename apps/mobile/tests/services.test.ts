@@ -12,11 +12,19 @@ function setup(handler: (seen: Seen) => { status?: number; data?: unknown } = ()
   let unauthorized = 0;
   let token: string | null = 'tok123';
   const adapter = async (config: any) => {
+    let parsedData = config.data;
+    if (typeof config.data === 'string') {
+      try {
+        parsedData = JSON.parse(config.data);
+      } catch {
+        parsedData = config.data;
+      }
+    }
     const s: Seen = {
       method: config.method,
       url: config.url,
       params: config.params,
-      data: config.data ? JSON.parse(config.data) : undefined,
+      data: parsedData,
       auth: config.headers.get('Authorization'),
     };
     seen.push(s);
@@ -99,4 +107,21 @@ test('error server (409) diteruskan apa adanya untuk ditampilkan UI', async () =
   const t = setup(() => ({ status: 409, data: { success: false, message: 'Stok tidak cukup' } }));
   await assert.rejects(t.api.borrow.create({ item_id: 'i', quantity: 1, borrow_date: 'a', due_date: 'b' }), (e: any) => e.response.data.message === 'Stok tidak cukup');
   assert.equal(t.unauthorizedCount(), 0);
+});
+
+test('categories & uploadImage endpoints', async () => {
+  const t = setup(() => ({ data: { data: [{ id: 'c1', name: 'Alat' }] } }));
+  const cats = await t.api.categories.list();
+  assert.deepEqual(cats, [{ id: 'c1', name: 'Alat' }]);
+  assert.equal(t.seen[0].url, '/categories');
+  assert.equal(t.seen[0].method, 'get');
+
+  await t.api.categories.create('Audio');
+  assert.equal(t.seen[1].url, '/categories');
+  assert.equal(t.seen[1].method, 'post');
+  assert.deepEqual(t.seen[1].data, { name: 'Audio' });
+
+  await t.api.items.uploadImage('i10', { uri: 'file://test.jpg', name: 'test.jpg', type: 'image/jpeg' });
+  assert.equal(t.seen[2].url, '/items/i10/image');
+  assert.equal(t.seen[2].method, 'post');
 });

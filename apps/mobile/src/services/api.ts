@@ -1,5 +1,5 @@
 import type { AxiosInstance } from 'axios';
-import type { BorrowInput, BorrowRequest, Item, ItemInput, Profile, Stats } from './types.ts';
+import type { BorrowInput, BorrowRequest, Category, Item, ItemInput, Profile, Stats } from './types.ts';
 import type { BorrowStatus, Role } from '../lib/status.ts';
 
 type RequestFilters = { status?: BorrowStatus | ''; search?: string };
@@ -24,6 +24,15 @@ export function createApiServices(http: AxiosInstance) {
       },
     },
 
+    categories: {
+      async list() {
+        return data<Category[]>(await http.get('/categories'));
+      },
+      async create(name: string) {
+        return data<Category>(await http.post('/categories', { name }));
+      },
+    },
+
     items: {
       async list(filters: { search?: string; category?: string; status?: string } = {}) {
         return data<Item[]>(await http.get('/items', { params: clean(filters) }));
@@ -39,6 +48,49 @@ export function createApiServices(http: AxiosInstance) {
       },
       async remove(id: string) {
         await http.delete(`/items/${id}`);
+      },
+      async uploadImage(
+        id: string,
+        fileData: {
+          uri: string;
+          name?: string | null;
+          fileName?: string | null;
+          type?: string | null;
+          mimeType?: string | null;
+          file?: any;
+        }
+      ) {
+        const formData = new FormData();
+        const mimeType =
+          fileData.mimeType ||
+          (fileData.type && fileData.type.includes('/') ? fileData.type : 'image/jpeg');
+        const fileName =
+          fileData.fileName ||
+          fileData.name ||
+          `photo-${Date.now()}.${mimeType === 'image/png' ? 'png' : 'jpg'}`;
+
+        if (typeof window !== 'undefined' && fileData.file instanceof File) {
+          formData.append('image', fileData.file);
+        } else if (typeof window !== 'undefined' && fileData.uri && fileData.uri.startsWith('blob:')) {
+          const res = await fetch(fileData.uri);
+          const blob = await res.blob();
+          const file = new File([blob], fileName, { type: mimeType });
+          formData.append('image', file);
+        } else {
+          formData.append('image', {
+            uri: fileData.uri,
+            name: fileName,
+            type: mimeType,
+          } as any);
+        }
+
+        return data<Item>(
+          await http.post(`/items/${id}/image`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          })
+        );
       },
     },
 

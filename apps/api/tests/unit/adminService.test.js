@@ -33,6 +33,7 @@ test('stats: menghitung semua metrik', async () => {
 test('setRole: promosi user, tidak bisa ubah role sendiri, role tidak valid, user tak ada', async () => {
   const { services, admin, budi } = await setup();
   assert.equal((await services.admin.setRole(admin, budi.id, 'admin')).role, 'admin');
+  assert.equal((await services.admin.setRole(admin, budi.id, 'superadmin')).role, 'superadmin');
   await assert.rejects(services.admin.setRole(admin, admin.id, 'user'), (e) => e.status === 400);
   await assert.rejects(services.admin.setRole(admin, budi.id, 'root'), (e) => e.status === 400);
   await assert.rejects(services.admin.setRole(admin, 'x', 'user'), (e) => e.status === 404);

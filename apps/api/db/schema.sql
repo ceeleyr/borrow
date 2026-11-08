@@ -19,8 +19,27 @@ create table if not exists public.profiles (
   created_at  timestamptz not null default now()
 );
 alter table public.profiles drop constraint if exists profiles_role_check;
-alter table public.profiles add constraint profiles_role_check check (role in ('user', 'admin'));
+alter table public.profiles add constraint profiles_role_check check (role in ('user', 'admin', 'superadmin'));
 create unique index if not exists profiles_email_key on public.profiles (lower(email));
+
+-- ---------- categories ----------
+create table if not exists public.categories (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  created_at  timestamptz not null default now()
+);
+create unique index if not exists categories_name_lower_idx on public.categories (lower(trim(name)));
+
+-- Seed default categories bila belum ada
+insert into public.categories (name)
+values 
+  ('Elektronik'),
+  ('Alat & Perkakas'),
+  ('Outdoor & Camping'),
+  ('Audio & Visual'),
+  ('Olahraga'),
+  ('Perlengkapan Acara')
+on conflict do nothing;
 
 -- ---------- items ----------
 create table if not exists public.items (
@@ -41,8 +60,21 @@ create table if not exists public.items (
 -- Kolom baru untuk skema lama
 alter table public.items add column if not exists quantity           integer not null default 1;
 alter table public.items add column if not exists available_quantity integer not null default 1;
+alter table public.items add column if not exists category_id        uuid references public.categories(id) on delete set null;
 alter table public.items add column if not exists created_by         uuid references public.profiles(id) on delete set null;
 alter table public.items add column if not exists updated_at         timestamptz not null default now();
+
+-- Sinkronisasi kategori lama dari items ke tabel categories
+insert into public.categories (name)
+select distinct trim(category) from public.items
+where category is not null and trim(category) <> ''
+on conflict do nothing;
+
+update public.items i
+set category_id = c.id
+from public.categories c
+where lower(trim(i.category)) = lower(trim(c.name))
+  and i.category_id is null;
 
 -- Skema lama memakai owner_id (barang milik user) -> sekarang barang dikelola admin
 do $$
@@ -140,6 +172,7 @@ $$;
 -- API memakai service role (melewati RLS). Aktifkan RLS tanpa policy supaya
 -- anon key tidak bisa membaca/menulis tabel secara langsung.
 alter table public.profiles        enable row level security;
+alter table public.categories      enable row level security;
 alter table public.items           enable row level security;
 alter table public.borrow_requests enable row level security;
 
@@ -148,6 +181,6 @@ insert into storage.buckets (id, name, public)
 values ('item-images', 'item-images', true)
 on conflict (id) do nothing;
 
--- ---------- Menjadikan akun admin ----------
--- Cara mudah:  npm run create-admin -- email@domain.com password "Nama"
--- Atau manual:  update public.profiles set role = 'admin' where email = 'email@domain.com';
+-- ---------- Menjadikan akun admin / superadmin ----------
+-- Cara mudah:  npm run create-admin -- email@domain.com password "Nama" superadmin
+-- Atau manual:  update public.profiles set role = 'superadmin' where email = 'email@domain.com';

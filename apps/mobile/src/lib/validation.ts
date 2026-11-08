@@ -32,7 +32,7 @@ export type ItemFormInput = {
   category: string;
   condition: ItemCondition;
   quantity: string;
-  imageUrl: string;
+  imageUrl?: string | null;
   unavailable: boolean;
 };
 
@@ -60,8 +60,10 @@ export function validateItemForm(v: ItemFormInput): {
     errors.quantity = 'Jumlah harus bilangan bulat minimal 1';
   }
 
-  const imageUrl = v.imageUrl.trim();
-  if (imageUrl && !/^https?:\/\/\S+$/i.test(imageUrl)) errors.imageUrl = 'URL gambar harus diawali http:// atau https://';
+  const imageUrl = (v.imageUrl ?? '').trim();
+  if (imageUrl && !/^https?:\/\/\S+$/i.test(imageUrl) && !imageUrl.startsWith('/') && !imageUrl.startsWith('data:') && !imageUrl.startsWith('file:') && !imageUrl.startsWith('blob:')) {
+    errors.imageUrl = 'URL gambar tidak valid';
+  }
 
   if (Object.keys(errors).length > 0) return { errors, payload: null };
   return {

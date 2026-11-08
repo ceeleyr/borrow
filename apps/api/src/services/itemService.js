@@ -3,7 +3,7 @@ const { validateItem } = require('../lib/validators');
 const { deriveItemStatus } = require('../domain/borrowFlow');
 const { ITEM_STATUS } = require('../models/constants');
 
-function createItemService({ items, borrows }) {
+function createItemService({ items, borrows, categories }) {
   async function mustFind(id) {
     const item = await items.findById(id);
     if (!item) throw notFound('Item not found');
@@ -20,6 +20,9 @@ function createItemService({ items, borrows }) {
 
     async create(admin, body) {
       const data = validateItem(body);
+      if (data.category && categories?.create) {
+        await categories.create({ name: data.category });
+      }
       const created = await items.create({ ...data, created_by: admin.id });
       if (data.status === ITEM_STATUS.UNAVAILABLE) {
         return items.update(created.id, { status: ITEM_STATUS.UNAVAILABLE });
@@ -30,6 +33,9 @@ function createItemService({ items, borrows }) {
     async update(id, body) {
       const item = await mustFind(id);
       const data = validateItem(body, { partial: true });
+      if (data.category && categories?.create) {
+        await categories.create({ name: data.category });
+      }
       const patch = { ...data };
 
       // Ubah total stok -> sesuaikan stok tersedia; tidak boleh di bawah unit yang sedang keluar.

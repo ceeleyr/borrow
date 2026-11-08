@@ -74,6 +74,7 @@ Supabase provides the PostgreSQL database used to store:
 
 * Users
 * Items
+* Categories
 * Borrowing transactions
 * Borrowing status
 * Borrowing history
@@ -81,15 +82,11 @@ Supabase provides the PostgreSQL database used to store:
 Basic relationship:
 
 ```text
-Users
+Categories
   │
   │ 1:N
   ▼
-Borrowings
-  │
-  │ N:1
-  ▼
-Items
+Items ◄── N:1 ── Borrowings ── 1:N ── Users
 ```
 
 ---

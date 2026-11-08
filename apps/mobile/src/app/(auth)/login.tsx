@@ -47,15 +47,6 @@ export default function LoginScreen() {
             Belum punya akun? <Text style={{ fontWeight: '700' }}>Daftar</Text>
           </Link>
 
-          {__DEV__ ? (
-            <View style={styles.demo}>
-              <Text style={styles.demoTitle}>Akun demo (mode API --memory)</Text>
-              <View style={{ flexDirection: 'row', gap: space.sm }}>
-                <Button small variant="secondary" title="Isi akun User" testID="fill-user" onPress={() => { setEmail('user@borrow.test'); setPassword('password123'); }} />
-                <Button small variant="secondary" title="Isi akun Admin" testID="fill-admin" onPress={() => { setEmail('admin@borrow.test'); setPassword('password123'); }} />
-              </View>
-            </View>
-          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>

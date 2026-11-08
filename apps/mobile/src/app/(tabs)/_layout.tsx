@@ -17,6 +17,13 @@ const ADMIN_TABS: Entry[] = [
   { name: 'home', href: '/', label: 'Dashboard', icon: '📊' },
   { name: 'requests', href: '/requests', label: 'Permintaan', icon: '📋' },
   { name: 'items', href: '/items', label: 'Barang', icon: '📦' },
+  { name: 'profile', href: '/profile', label: 'Profil', icon: '👤' },
+];
+
+const SUPERADMIN_TABS: Entry[] = [
+  { name: 'home', href: '/', label: 'Dashboard', icon: '📊' },
+  { name: 'requests', href: '/requests', label: 'Permintaan', icon: '📋' },
+  { name: 'items', href: '/items', label: 'Barang', icon: '📦' },
   { name: 'users', href: '/users', label: 'Pengguna', icon: '👥' },
   { name: 'profile', href: '/profile', label: 'Profil', icon: '👤' },
 ];
@@ -31,9 +38,9 @@ function TabButton({ entry, isFocused, ...props }: TabTriggerSlotProps & { entry
 }
 
 export default function TabsLayout() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isSuperAdmin } = useAuth();
   const insets = useSafeAreaInsets();
-  const tabs = isAdmin ? ADMIN_TABS : USER_TABS;
+  const tabs = isSuperAdmin ? SUPERADMIN_TABS : isAdmin ? ADMIN_TABS : USER_TABS;
 
   return (
     // TabSlot & TabList harus anak langsung dari <Tabs> agar navigator menemukan rute.
@@ -43,7 +50,7 @@ export default function TabsLayout() {
         {/* style harus objek tunggal (bukan array) karena TabList asChild men-spread-nya; TabTrigger harus tepat satu lapis di bawah pembungkus TabList asChild */}
         <View style={StyleSheet.flatten([styles.bar, { paddingBottom: Math.max(insets.bottom, 6) }])}>
           {tabs.map((t) => (
-            <TabTrigger key={`${isAdmin}-${t.name}`} name={t.name} href={t.href as never} asChild>
+            <TabTrigger key={`${isSuperAdmin ? 'super' : isAdmin ? 'admin' : 'user'}-${t.name}`} name={t.name} href={t.href as never} asChild>
               <TabButton entry={t} />
             </TabTrigger>
           ))}

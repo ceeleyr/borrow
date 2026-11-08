@@ -9,6 +9,12 @@ export type Profile = {
   created_at: string;
 };
 
+export type Category = {
+  id: string;
+  name: string;
+  created_at?: string;
+};
+
 export type Item = {
   id: string;
   name: string;

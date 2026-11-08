@@ -20,7 +20,13 @@ function createAuthMiddleware(authService) {
 
   return {
     requireAuth,
-    requireAdmin: requireRole(ROLES.ADMIN, 'Akses khusus admin'),
+    requireAdmin: (req, res, next) => {
+      if (!req.user || (req.user.role !== ROLES.ADMIN && req.user.role !== ROLES.SUPERADMIN)) {
+        throw forbidden('Akses khusus admin');
+      }
+      next();
+    },
+    requireSuperAdmin: requireRole(ROLES.SUPERADMIN, 'Akses khusus superadmin (kelola user)'),
     requireUser: requireRole(ROLES.USER, 'Fitur ini khusus anggota (user)'),
   };
 }

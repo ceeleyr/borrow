@@ -13,6 +13,12 @@ Status HTTP: `400` validasi · `401` token hilang/tidak valid · `403` tidak pun
 | GET | `/auth/me` | login | profil + role (dipakai app untuk memulihkan sesi) |
 | PUT | `/users/me` | login | ubah `full_name` / `avatar_url` |
 
+## Kategori
+| Method | Path | Akses | Keterangan |
+|---|---|---|---|
+| GET | `/categories` | publik | daftar kategori untuk dropdown (disimpan di tabel SQL `categories`) |
+| POST | `/categories` | login | `{name}` → tambah kategori baru (tersedia via tombol "Add Category" pada dropdown) |
+
 ## Barang
 | Method | Path | Akses | Keterangan |
 |---|---|---|---|
@@ -21,7 +27,7 @@ Status HTTP: `400` validasi · `401` token hilang/tidak valid · `403` tidak pun
 | POST | `/items` | admin | `{name, description?, category?, condition(good/fair/poor), quantity, image_url?, status?}` |
 | PUT | `/items/:id` | admin | ubah sebagian field; `quantity` menyesuaikan stok tersedia; `status` = `available`/`unavailable` |
 | DELETE | `/items/:id` | admin | 409 bila sudah punya riwayat peminjaman |
-| POST | `/items/:id/image` | admin | multipart field `image` (jpg/png/webp/gif, maks 5MB) |
+| POST | `/items/:id/image` | admin | multipart field `image` (jpg/png/webp/gif, maks 5MB) — admin mengunggah foto barang langsung dari perangkat (bukan URL teks) |
 
 Status barang: `available`, `borrowed` (stok habis, otomatis), `unavailable` (dinonaktifkan admin).
 

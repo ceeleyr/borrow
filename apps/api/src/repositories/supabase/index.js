@@ -18,6 +18,62 @@ const sanitizeSearch = (s) => String(s).replace(/[,()%*\\]/g, ' ').trim();
  * Skema: lihat apps/api/db/schema.sql
  */
 function createSupabaseRepositories(client) {
+  const defaultCategories = ['Elektronik', 'Alat & Perkakas', 'Outdoor & Camping', 'Audio & Visual', 'Olahraga', 'Perlengkapan Acara'];
+
+  const categories = {
+    async list() {
+      const { data, error } = await client
+        .from('categories')
+        .select('*')
+        .order('name', { ascending: true });
+      if (error) {
+        if (error.code === '42P01' || error.message?.includes('categories')) {
+          console.warn('Tabel public.categories belum ada di Supabase. Jalankan apps/api/db/schema.sql.');
+          const { data: itemRows } = await client.from('items').select('category');
+          const set = new Set([...defaultCategories, ...(itemRows || []).map((r) => r.category).filter(Boolean)]);
+          return [...set].sort((a, b) => a.localeCompare(b, 'id')).map((name) => ({ id: name, name }));
+        }
+        check(error);
+      }
+      return data || [];
+    },
+    async findById(id) {
+      const { data, error } = await client.from('categories').select('*').eq('id', id).maybeSingle();
+      if (error) check(error);
+      return data;
+    },
+    async findByName(name) {
+      const { data, error } = await client
+        .from('categories')
+        .select('*')
+        .ilike('name', String(name).trim())
+        .maybeSingle();
+      if (error && error.code !== '42P01') check(error);
+      return data;
+    },
+    async create(data) {
+      const name = String(data.name || '').trim();
+      const existing = await categories.findByName(name);
+      if (existing) return existing;
+
+      const { data: row, error } = await client
+        .from('categories')
+        .insert({ name })
+        .select()
+        .single();
+      if (error) {
+        if (error.code === '23505') {
+          return categories.findByName(name);
+        }
+        if (error.code === '42P01') {
+          return { id: name, name, created_at: new Date().toISOString() };
+        }
+        check(error);
+      }
+      return row;
+    },
+  };
+
   const profiles = {
     async create(data) {
       const { data: row, error } = await client
@@ -194,7 +250,7 @@ function createSupabaseRepositories(client) {
     },
   };
 
-  return { profiles, items, borrows };
+  return { profiles, categories, items, borrows };
 }
 
 module.exports = { createSupabaseRepositories };

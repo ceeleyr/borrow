@@ -1,16 +1,18 @@
 const express = require('express');
 const upload = require('../middlewares/upload.middleware');
 const createAuthController = require('../controllers/auth.controller');
+const createCategoryController = require('../controllers/category.controller');
 const createItemController = require('../controllers/item.controller');
 const createBorrowController = require('../controllers/borrow.controller');
 const createAdminController = require('../controllers/admin.controller');
 
 /** Semua route didaftarkan di sini; hak akses dibaca sekali jalan dari atas ke bawah. */
 function createRouter({ services, storage, mw }) {
-  const { requireAuth, requireAdmin, requireUser } = mw;
+  const { requireAuth, requireAdmin, requireSuperAdmin, requireUser } = mw;
   const router = express.Router();
 
   const authC = createAuthController(services);
+  const categoryC = createCategoryController(services);
   const itemC = createItemController(services, storage);
   const borrowC = createBorrowController(services);
   const adminC = createAdminController(services);
@@ -20,10 +22,14 @@ function createRouter({ services, storage, mw }) {
   router.post('/auth/login', authC.login);
   router.get('/auth/me', requireAuth, authC.me);
 
-  // --- Profil sendiri & manajemen user (admin) ---
+  // --- Kategori ---
+  router.get('/categories', categoryC.list);
+  router.post('/categories', requireAuth, categoryC.create);
+
+  // --- Profil sendiri & manajemen user (khusus superadmin) ---
   router.put('/users/me', requireAuth, authC.updateMe);
-  router.get('/users', requireAuth, requireAdmin, adminC.listUsers);
-  router.get('/users/:id', requireAuth, requireAdmin, adminC.getUser);
+  router.get('/users', requireAuth, requireSuperAdmin, adminC.listUsers);
+  router.get('/users/:id', requireAuth, requireSuperAdmin, adminC.getUser);
 
   // --- Barang: baca publik, kelola khusus admin ---
   router.get('/items', itemC.list);
@@ -43,9 +49,9 @@ function createRouter({ services, storage, mw }) {
   const admin = express.Router();
   admin.use(requireAuth, requireAdmin);
   admin.get('/stats', adminC.stats);
-  admin.get('/users', adminC.listUsers);
-  admin.patch('/users/:id/role', adminC.setRole);
-  admin.delete('/users/:id', adminC.deleteUser);
+  admin.get('/users', requireSuperAdmin, adminC.listUsers);
+  admin.patch('/users/:id/role', requireSuperAdmin, adminC.setRole);
+  admin.delete('/users/:id', requireSuperAdmin, adminC.deleteUser);
   admin.get('/borrow-requests', adminC.listRequests);
   admin.patch('/borrow-requests/:id/approve', adminC.approve);
   admin.patch('/borrow-requests/:id/reject', adminC.reject);

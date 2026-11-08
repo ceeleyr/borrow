@@ -1,4 +1,4 @@
-export type Role = 'user' | 'admin';
+export type Role = 'user' | 'admin' | 'superadmin';
 export type BorrowStatus = 'pending' | 'approved' | 'borrowed' | 'returned' | 'rejected' | 'cancelled';
 export type ItemStatus = 'available' | 'borrowed' | 'unavailable';
 export type ItemCondition = 'good' | 'fair' | 'poor';
@@ -49,7 +49,7 @@ export function borrowLabel(status: BorrowStatus, overdue = false): string {
 
 /** Aksi yang boleh dilakukan pada sebuah request, menurut role & status (cermin aturan backend). */
 export function availableActions(role: Role, status: BorrowStatus): RequestAction[] {
-  if (role === 'admin') {
+  if (role === 'admin' || role === 'superadmin') {
     switch (status) {
       case 'pending':
         return ['approve', 'reject'];

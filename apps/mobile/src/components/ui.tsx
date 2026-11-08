@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import type { StyleProp, TextInputProps, ViewStyle } from 'react-native';
 import { colors, MAX_WIDTH, radius, space, toneColors } from '../constants/theme';
 import type { Tone } from '../lib/status';
@@ -42,22 +42,25 @@ export function Button({ title, onPress, variant = 'primary', loading, disabled,
   const off = disabled || loading;
   const v = buttonVariants[variant];
   return (
-    <Pressable
+    <TouchableOpacity
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={title}
       onPress={onPress}
       disabled={off}
-      style={({ pressed }) => [
+      activeOpacity={0.8}
+      style={StyleSheet.flatten([
         styles.button,
         small && styles.buttonSmall,
-        { backgroundColor: v.bg, borderColor: v.border },
-        pressed && { opacity: 0.85 },
-        off && { opacity: 0.5 },
+        { backgroundColor: v.bg, borderColor: v.border, opacity: off ? 0.5 : 1 },
         style,
-      ]}>
-      {loading ? <ActivityIndicator color={v.fg} /> : <Text style={[styles.buttonText, small && { fontSize: 13 }, { color: v.fg }]}>{title}</Text>}
-    </Pressable>
+      ])}>
+      {loading ? (
+        <ActivityIndicator color={v.fg} />
+      ) : (
+        <Text style={[styles.buttonText, small && { fontSize: 13 }, { color: v.fg }]}>{title}</Text>
+      )}
+    </TouchableOpacity>
   );
 }
 

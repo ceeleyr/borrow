@@ -9,6 +9,7 @@ type AuthContextType = {
   user: Profile | null;
   isLoading: boolean;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, fullName: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -97,7 +98,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const value = useMemo<AuthContextType>(
-    () => ({ user, isLoading, isAdmin: user?.role === 'admin', login, register, logout: clearSession, updateProfile }),
+    () => ({
+      user,
+      isLoading,
+      isAdmin: user?.role === 'admin' || user?.role === 'superadmin',
+      isSuperAdmin: user?.role === 'superadmin',
+      login,
+      register,
+      logout: clearSession,
+      updateProfile,
+    }),
     [user, isLoading, login, register, clearSession, updateProfile]
   );
 

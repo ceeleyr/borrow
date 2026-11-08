@@ -62,6 +62,8 @@ test('validateBorrowRequest: kasus tidak valid', () => {
 
 test('validateRole & validateProfileUpdate', () => {
   assert.equal(v.validateRole('admin'), 'admin');
+  assert.equal(v.validateRole('superadmin'), 'superadmin');
+  assert.equal(v.validateRole('user'), 'user');
   throwsBad(() => v.validateRole('root'), /role/);
   assert.deepEqual(v.validateProfileUpdate({ full_name: ' Ani ' }), { full_name: 'Ani' });
   throwsBad(() => v.validateProfileUpdate({}), /Tidak ada data/);

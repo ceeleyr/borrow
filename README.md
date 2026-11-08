@@ -184,10 +184,10 @@ Kriteria keberhasilan aplikasi:
 12. Admin dapat mengelola data barang yang tersedia untuk dipinjam.
 
 # Cara Run Project (2 Terminal)
-## 1. API (data contoh + akun demo, disimpan di memori)
+## 1. API 
 cd apps/api
 npm install
-npm run start:demo          # http://localhost:3000
+npm run start         # http://localhost:3000
 
 ## 2. Mobile / web (terminal lain)
 cd apps/mobile

@@ -11,10 +11,47 @@ const newestFirst = (map) => [...map.values()].reverse();
  * Semua method async agar kontraknya identik dengan repository Supabase.
  */
 function createMemoryRepositories() {
+  const defaultCategories = ['Elektronik', 'Alat & Perkakas', 'Outdoor & Camping', 'Audio & Visual', 'Olahraga', 'Perlengkapan Acara'];
   const db = {
     profiles: new Map(),
+    categories: new Map(
+      defaultCategories.map((name) => {
+        const id = crypto.randomUUID();
+        return [id, { id, name, created_at: nowIso() }];
+      })
+    ),
     items: new Map(),
     borrows: new Map(),
+  };
+
+  const categories = {
+    async list() {
+      return [...db.categories.values()]
+        .map(clone)
+        .sort((a, b) => a.name.localeCompare(b.name, 'id'));
+    },
+    async findById(id) {
+      return clone(db.categories.get(id) || null);
+    },
+    async findByName(name) {
+      const lower = String(name || '').trim().toLowerCase();
+      return clone([...db.categories.values()].find((c) => c.name.toLowerCase() === lower) || null);
+    },
+    async create(data) {
+      const name = String(data.name || '').trim();
+      const existing = await categories.findByName(name);
+      if (existing) return existing;
+      const cat = {
+        id: data.id || crypto.randomUUID(),
+        name,
+        created_at: nowIso(),
+      };
+      db.categories.set(cat.id, cat);
+      return clone(cat);
+    },
+    async delete(id) {
+      return db.categories.delete(id);
+    },
   };
 
   const profiles = {
@@ -180,7 +217,7 @@ function createMemoryRepositories() {
     },
   };
 
-  return { profiles, items, borrows, _db: db };
+  return { profiles, categories, items, borrows, _db: db };
 }
 
 module.exports = { createMemoryRepositories };

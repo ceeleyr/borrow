@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   Alert,
   Image,
+  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
@@ -157,6 +158,7 @@ export default function ItemFormScreen() {
   return (
     <Screen>
       <Stack.Screen options={{ title: editing ? 'Ubah Barang' : 'Tambah Barang' }} />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ padding: space.lg, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
         <ErrorBanner message={serverError} />
         
@@ -227,6 +229,7 @@ export default function ItemFormScreen() {
 
         <Button title={editing ? 'Simpan Perubahan' : 'Tambah Barang'} onPress={save} loading={saving} testID="form-submit" />
       </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }

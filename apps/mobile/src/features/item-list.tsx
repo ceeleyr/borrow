@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { services } from '@/services/client';
 import type { Item } from '@/services/types';
-import { Badge, Button, Card, EmptyState, ErrorBanner, Field, Header, Loading, Screen, Thumb } from '@/components/ui';
+import { Badge, Button, CacheNotice, Card, EmptyState, ErrorBanner, Field, Header, Loading, Screen, Thumb } from '@/components/ui';
 import { colors, space } from '@/constants/theme';
 import { CONDITION_LABEL, itemStatusInfo } from '@/lib/status';
 import { useDebounced, useLoad } from '@/hooks/use-load';
+
+/** Di layar lebar (tablet/web) katalog ditampilkan 2 kolom. */
+const TWO_COLUMN_MIN_WIDTH = 720;
 
 export function ItemCard({ item, onPress }: { item: Item; onPress: () => void }) {
   const info = itemStatusInfo(item);
@@ -32,7 +35,15 @@ export function ItemList({ admin }: { admin: boolean }) {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const debounced = useDebounced(search);
-  const { data, loading, refreshing, error, reload } = useLoad(() => services.items.list({ search: debounced }), [debounced]);
+  const { width } = useWindowDimensions();
+  const columns = width >= TWO_COLUMN_MIN_WIDTH ? 2 : 1;
+  // Cache hanya untuk daftar tanpa pencarian (daftar penuh), supaya hasil cari tidak menimpa katalog.
+  const cacheKey = debounced ? null : admin ? 'items:admin' : 'items:catalog';
+  const { data, loading, refreshing, error, fromCache, savedAt, reload } = useLoad(
+    () => services.items.list({ search: debounced }),
+    [debounced],
+    { cacheKey }
+  );
 
   return (
     <Screen>
@@ -43,18 +54,26 @@ export function ItemList({ admin }: { admin: boolean }) {
       />
       <View style={{ paddingHorizontal: space.lg }}>
         <Field label="Cari barang" value={search} onChangeText={setSearch} placeholder="Nama, kategori, atau deskripsi" testID="search-items" />
-        <ErrorBanner message={error} />
+        <ErrorBanner message={error} onRetry={reload} />
+        {fromCache ? <CacheNotice savedAt={savedAt} /> : null}
       </View>
       {loading ? (
         <Loading />
       ) : (
         <FlatList
+          key={columns}
+          numColumns={columns}
+          columnWrapperStyle={columns > 1 ? { gap: space.md } : undefined}
           data={data ?? []}
           keyExtractor={(i) => i.id}
           contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: space.xl }}
           refreshing={refreshing}
           onRefresh={reload}
-          renderItem={({ item }) => <ItemCard item={item} onPress={() => router.push(`/item/${item.id}`)} />}
+          renderItem={({ item }) => (
+            <View style={{ flex: 1 }}>
+              <ItemCard item={item} onPress={() => router.push(`/item/${item.id}`)} />
+            </View>
+          )}
           ListEmptyComponent={<EmptyState title="Belum ada barang" hint={search ? 'Coba kata kunci lain' : undefined} />}
         />
       )}

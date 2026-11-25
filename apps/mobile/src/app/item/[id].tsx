@@ -10,7 +10,7 @@ import { CONDITION_LABEL, itemStatusInfo } from '@/lib/status';
 import { addDays, formatDate, todayString, toDateTimeString } from '@/lib/dates';
 import { validateBorrowForm } from '@/lib/validation';
 import { confirmAction, notify } from '@/lib/dialog';
-import { getErrorMessage } from '@/lib/errors';
+import { getErrorMessage, isNetworkError } from '@/lib/errors';
 import { useLoad } from '@/hooks/use-load';
 
 const DURATIONS = [1, 3, 7, 14];
@@ -51,7 +51,12 @@ export default function ItemDetailScreen() {
       notify('Permintaan terkirim', 'Admin akan meninjau pengajuanmu. Pantau statusnya di tab Pinjaman.');
       router.back(); // kembali ke layar asal; tab Pinjaman otomatis memuat ulang saat dibuka
     } catch (e) {
-      setFormError(getErrorMessage(e, 'Gagal mengajukan peminjaman'));
+      // Tanpa jawaban dari server, pengajuan dianggap belum masuk. Stok dari cache tidak pernah dipakai untuk memproses pinjaman.
+      setFormError(
+        isNetworkError(e)
+          ? 'Tidak ada koneksi ke server. Pinjaman BELUM diajukan. Hubungkan ke internet lalu coba lagi.'
+          : getErrorMessage(e, 'Gagal mengajukan peminjaman')
+      );
     } finally {
       setSubmitting(false);
     }

@@ -4,6 +4,8 @@ import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { services, setAuthToken, setUnauthorizedHandler } from '@/services/client';
 import type { Profile } from '@/services/types';
+import { appCache } from '@/lib/storage';
+import { clearReturnReminders } from '@/lib/notifications';
 
 type AuthContextType = {
   user: Profile | null;
@@ -44,6 +46,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setUser(null);
     setAuthToken(null);
     await writeToken(null).catch(() => {});
+    // Data pinjaman & pengingat milik akun ini tidak boleh tersisa untuk pengguna berikutnya.
+    await Promise.all([appCache.clear(), clearReturnReminders()]);
   }, []);
 
   // Pulihkan sesi: token tersimpan -> validasi ke server lewat /auth/me (juga mengambil role).

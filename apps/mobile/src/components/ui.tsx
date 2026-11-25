@@ -119,11 +119,29 @@ export function Chip({ label, active, onPress, testID }: { label: string; active
   );
 }
 
-export function ErrorBanner({ message, testID }: { message?: string | null; testID?: string }) {
+export function ErrorBanner({ message, testID, onRetry }: { message?: string | null; testID?: string; onRetry?: () => void }) {
   if (!message) return null;
   return (
     <View testID={testID ?? 'error-banner'} style={styles.errorBanner} accessibilityRole="alert">
       <Text style={styles.errorText}>{message}</Text>
+      {onRetry ? (
+        <Pressable testID="retry-button" accessibilityRole="button" accessibilityLabel="Coba lagi" onPress={onRetry} style={styles.retryBtn}>
+          <Text style={styles.retryText}>Coba lagi</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+/** Pemberitahuan bahwa yang ditampilkan adalah data tersimpan di device (mode offline). */
+export function CacheNotice({ savedAt }: { savedAt: number | null }) {
+  if (!savedAt) return null;
+  const time = new Date(savedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+  return (
+    <View testID="cache-notice" style={styles.cacheNotice} accessibilityRole="text">
+      <Text style={styles.cacheText}>
+        Offline: menampilkan data tersimpan terakhir ({time}). Stok bisa sudah berubah. Peminjaman hanya bisa diajukan saat online.
+      </Text>
     </View>
   );
 }
@@ -213,6 +231,10 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 13, fontWeight: '600', color: colors.text },
   errorBanner: { backgroundColor: '#fee2e2', borderRadius: radius.md, padding: space.md, marginBottom: space.md },
   errorText: { color: '#b91c1c', fontSize: 14 },
+  retryBtn: { alignSelf: 'flex-start', marginTop: space.sm, paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.md, borderWidth: 1, borderColor: '#b91c1c' },
+  retryText: { color: '#b91c1c', fontSize: 13, fontWeight: '700' },
+  cacheNotice: { backgroundColor: '#fef9c3', borderRadius: radius.md, padding: space.md, marginBottom: space.md },
+  cacheText: { color: '#854d0e', fontSize: 13 },
   infoBanner: { backgroundColor: '#dcfce7', borderRadius: radius.md, padding: space.md, marginBottom: space.md },
   infoText: { color: '#15803d', fontSize: 14 },
   center: { alignItems: 'center', justifyContent: 'center', padding: 40 },

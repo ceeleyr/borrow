@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { services } from '@/services/client';
 import type { BorrowRequest } from '@/services/types';
-import { Badge, Card, Chip, EmptyState, ErrorBanner, Field, Header, Loading, Screen } from '@/components/ui';
+import { Badge, CacheNotice, Card, Chip, EmptyState, ErrorBanner, Field, Header, Loading, Screen } from '@/components/ui';
 import { colors, space } from '@/constants/theme';
 import { BORROW_STATUSES, BORROW_STATUS_LABEL, borrowLabel, borrowTone } from '@/lib/status';
 import type { BorrowStatus } from '@/lib/status';
 import { formatDate } from '@/lib/dates';
 import { useDebounced, useLoad } from '@/hooks/use-load';
+import { syncReturnReminders } from '@/lib/notifications';
 
 export function RequestCard({ r, admin, onPress }: { r: BorrowRequest; admin: boolean; onPress: () => void }) {
   return (
@@ -37,10 +38,19 @@ export function RequestsList({ admin }: { admin: boolean }) {
   const [search, setSearch] = useState('');
   const debounced = useDebounced(search);
 
-  const { data, loading, refreshing, error, reload } = useLoad(
+  // Cache per filter; hasil pencarian admin tidak disimpan.
+  const cacheKey = admin ? (debounced ? null : `requests:admin:${status || 'all'}`) : `requests:mine:${status || 'all'}`;
+  const { data, loading, refreshing, error, fromCache, savedAt, reload } = useLoad(
     () => (admin ? services.admin.requests({ status, search: debounced }) : services.borrow.mine({ status })),
-    [admin, status, debounced]
+    [admin, status, debounced],
+    { cacheKey }
   );
+
+  // Pengingat hanya disinkronkan dari daftar lengkap (filter "Semua"), agar pinjaman yang sedang
+  // disembunyikan filter tidak ikut kehilangan jadwal pengingatnya.
+  useEffect(() => {
+    if (!admin && status === '' && data) void syncReturnReminders(data);
+  }, [admin, status, data]);
 
   return (
     <Screen>
@@ -53,7 +63,8 @@ export function RequestsList({ admin }: { admin: boolean }) {
             <Chip key={s} label={BORROW_STATUS_LABEL[s]} active={status === s} onPress={() => setStatus(s)} testID={`filter-${s}`} />
           ))}
         </ScrollView>
-        <ErrorBanner message={error} />
+        <ErrorBanner message={error} onRetry={reload} />
+        {fromCache ? <CacheNotice savedAt={savedAt} /> : null}
       </View>
       {loading ? (
         <Loading />

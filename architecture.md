@@ -169,13 +169,14 @@ apps/
       repositories/     memory/ (demo+test) dan supabase/ (produksi), kontrak sama
       auth/             memoryAuthProvider (JWT lokal) / supabaseAuthProvider
       storage/          local disk / Supabase Storage
-      lib/              validators, dates, errors
-      seed.js           data demo (dibuat lewat service, bukan injeksi DB)
+      lib/              validators, dates, errors, logger (JSON terstruktur, level via LOG_LEVEL)
     db/schema.sql       skema + fungsi adjust_item_stock (atomik) untuk Supabase
     tests/              unit/ + integration/ (node:test)
   mobile/   Expo (expo-router) + React Native Web
-    src/lib/            logika murni (status, tanggal, validasi, url API, error) — diuji
-    src/services/       http (axios) + api (semua endpoint) + client (RN-specific)
+    src/lib/            logika murni (status, tanggal, validasi, url API, error, reminder, cache) — diuji
+                        storage.ts (AsyncStorage: cache lokal), notifications.ts (pengingat lokal)
+    src/services/       http (axios + retry GET) + api (semua endpoint) + client (RN-specific)
+    src/features/       layar besar: dashboard, item-list, requests-list, profile-form
     src/contexts/       AuthProvider (pulihkan sesi via /auth/me)
     src/features/ src/app/   layar; hak akses via Stack.Protected + cek role
     tests/              unit (node:test)
@@ -196,3 +197,7 @@ sehingga dua admin menekan tombol yang sama tidak menggandakan pengurangan stok.
 - **Dua mode data**: `memory` membuat app langsung jalan & mudah diuji; `supabase` untuk produksi. Pilihan otomatis dari `.env`.
 - **Role selalu dibaca dari DB** pada setiap request (bukan dari token), jadi perubahan role langsung berlaku.
 - Barang/user yang punya riwayat tidak dihapus (integritas riwayat); barang cukup dinonaktifkan.
+- **Offline hanya baca**: data yang disimpan di device (cache) hanya untuk tampilan saat server tidak bisa dihubungi. Aksi tulis (ajukan pinjaman, approve, pickup, return, cancel) selalu ke server; tanpa jawaban server, aksi dianggap belum terjadi. Server tetap memvalidasi stok dan duplikasi.
+- **Retry hanya GET**: request baca yang gagal karena jaringan/5xx diulang maksimal 2 kali. POST/PUT/DELETE tidak diulang agar tidak terjadi dobel.
+- **Logging**: API menulis satu baris JSON per event dan per request (method, path, status, durasi). Header, token, dan body tidak pernah dicatat.
+- **Notifikasi lokal**: pengingat H-1 tanggal kembali dijadwalkan di perangkat, tanpa server push. Web tidak didukung.

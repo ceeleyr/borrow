@@ -5,8 +5,10 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
 import { Loading } from '@/components/ui';
+import { setupNotifications } from '@/lib/notifications';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+setupNotifications();
 
 function RootNavigator() {
   const { user, isLoading } = useAuth();

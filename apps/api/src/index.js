@@ -1,19 +1,20 @@
 const { load } = require('./config/env');
 const { buildApp } = require('./bootstrap');
+const { logger } = require('./lib/logger');
 
 async function main() {
   const config = load();
   const built = buildApp(config);
 
   built.app.listen(config.port, '0.0.0.0', () => {
-    console.log(`Server jalan di http://localhost:${config.port}  [store: ${built.mode}]`);
+    logger.info('server started', { port: config.port, store: built.mode, logLevel: process.env.LOG_LEVEL || 'info' });
     if (built.mode === 'memory') {
-      console.log('Mode memory: data kosong dan hilang saat restart.');
+      logger.warn('mode memory: data kosong dan hilang saat restart');
     }
   });
 }
 
 main().catch((err) => {
-  console.error('Gagal start server:', err.message);
+  logger.error('gagal start server', { err });
   process.exit(1);
 });

@@ -1,5 +1,6 @@
 const multer = require('multer');
 const { AppError } = require('../lib/errors');
+const { logger } = require('../lib/logger');
 
 function notFoundHandler(req, res) {
   res.status(404).json({ success: false, message: `Route ${req.method} ${req.path} tidak ditemukan` });
@@ -21,7 +22,7 @@ function errorHandler(err, req, res, next) {
     return res.status(400).json({ success: false, message: err.message });
   }
 
-  console.error('[unhandled]', err);
+  logger.error('unhandled error', { err, method: req.method, path: req.originalUrl?.split('?')[0] });
   res.status(500).json({ success: false, message: 'Terjadi kesalahan pada server' });
 }
 

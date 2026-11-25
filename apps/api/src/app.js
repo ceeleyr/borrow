@@ -4,16 +4,18 @@ const { createServices } = require('./services');
 const { createAuthMiddleware } = require('./middlewares/auth.middleware');
 const { createRouter } = require('./routes');
 const { notFoundHandler, errorHandler } = require('./middlewares/error.middleware');
+const { requestLogger, logger } = require('./lib/logger');
 
 /**
  * Factory aplikasi Express. Semua dependensi (repo, auth, storage) di-inject sehingga
  * app bisa dijalankan dengan Supabase (produksi) maupun in-memory (demo & test).
  */
-function createApp({ repos, authProvider, storage, clock }) {
+function createApp({ repos, authProvider, storage, clock, log = logger }) {
   const services = createServices({ repos, authProvider, clock });
   const mw = createAuthMiddleware(services.auth);
 
   const app = express();
+  app.use(requestLogger(log));
   app.use(cors());
   app.use(express.json({ limit: '1mb' }));
 

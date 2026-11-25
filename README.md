@@ -188,9 +188,18 @@ Kriteria keberhasilan aplikasi:
 cd apps/api
 npm install
 npm run start         # http://localhost:3000
+# Log: JSON per baris di terminal. Atur level dengan LOG_LEVEL=debug|info|warn|error
 
 ## 2. Mobile / web (terminal lain)
 cd apps/mobile
 npm install
 npm run web                 # buka di browser
 # atau: npm start           # lalu scan QR dengan Expo Go
+# Di HP, API tidak bisa diakses lewat localhost. Set EXPO_PUBLIC_API_URL ke alamat API yang bisa dijangkau.
+
+## Tes
+cd apps/api && npm test
+cd apps/mobile && npm test && npm run typecheck
+
+## Build APK
+Lihat [apps/mobile/RELEASE.md](apps/mobile/RELEASE.md).

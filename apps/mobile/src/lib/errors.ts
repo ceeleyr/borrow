@@ -5,6 +5,13 @@ type MaybeAxiosError = {
   request?: unknown;
 };
 
+/** True bila request tidak sampai ke server (offline, server mati, atau timeout) — belum ada jawaban dari server. */
+export function isNetworkError(error: unknown): boolean {
+  const e = (error ?? {}) as MaybeAxiosError;
+  if (e.response) return false;
+  return e.code === 'ECONNABORTED' || e.code === 'ERR_NETWORK' || e.message === 'Network Error' || Boolean(e.request);
+}
+
 /** Ubah error axios/umum menjadi pesan yang ramah untuk pengguna. */
 export function getErrorMessage(error: unknown, fallback = 'Terjadi kesalahan'): string {
   const e = (error ?? {}) as MaybeAxiosError;

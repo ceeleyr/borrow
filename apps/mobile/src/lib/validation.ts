@@ -26,6 +26,14 @@ export function validateRegisterForm(v: {
   return errors;
 }
 
+export function validateProfileForm(v: { fullName: string }): FormErrors<'fullName'> {
+  const errors: FormErrors<'fullName'> = {};
+  const name = v.fullName.trim();
+  if (!name) errors.fullName = 'Nama tidak boleh kosong';
+  else if (name.length > 100) errors.fullName = 'Nama maksimal 100 karakter';
+  return errors;
+}
+
 export type ItemFormInput = {
   name: string;
   description: string;

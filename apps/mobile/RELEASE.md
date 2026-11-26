@@ -4,8 +4,8 @@ Dokumen ini untuk membuat APK/AAB dari aplikasi mobile dan memastikan API siap d
 
 ## 1. Sebelum build
 
-1. **Ganti placeholder** di `eas.json`: `EXPO_PUBLIC_API_URL` harus menunjuk ke API yang bisa diakses dari HP (misalnya `https://api-anda.example.com/api`). Localhost tidak bisa diakses dari HP saat rilis.
-2. **Ganti package id** di `app.json` (`android.package`, default `com.example.borrow`) menjadi id unik milik Anda. Id ini tidak boleh berubah setelah aplikasi pernah dipublikasikan.
+1. **Cek alamat API** di `eas.json`: `EXPO_PUBLIC_API_URL` sudah diisi ke API produksi di Vercel, `https://borrow-iota.vercel.app/api`. Kalau API pindah ke domain lain, ubah nilai ini lalu build ulang. Localhost dan IP LAN tidak bisa diakses dari HP saat rilis.
+2. **Cek package id** di `app.json` (`android.package`, saat ini `borrow.mobile.s5`). Id ini tidak boleh berubah setelah aplikasi pernah dipasang atau dipublikasikan.
 3. Pastikan API berjalan dengan `DATA_STORE=supabase` dan `LOG_LEVEL=info` (atau `warn` untuk produksi).
 4. Jalankan tes dan typecheck:
    ```bash

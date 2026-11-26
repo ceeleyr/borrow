@@ -10,7 +10,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://192.168.31.237:3000/api"
+        "EXPO_PUBLIC_API_URL": "https://borrow-iota.vercel.app/api"
       }
     },
     "production": {
@@ -19,7 +19,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://GANTI-DENGAN-URL-API-ANDA/api"
+        "EXPO_PUBLIC_API_URL": "https://borrow-iota.vercel.app/api"
       }
     }
   },

@@ -140,6 +140,12 @@ Express.js API
 
 The Express.js backend is deployed through Vercel from the Git repository.
 
+- **Root Directory** di Vercel: `apps/api` (repo ini berisi beberapa project).
+- **Entry point**: `apps/api/api/index.js` mengekspor app Express untuk fungsi serverless. Tidak ada `app.listen()` di jalur ini.
+- **Rewrite**: `apps/api/vercel.json` meneruskan semua URL ke fungsi tersebut, sehingga path tetap `/api/...`.
+- **Environment variable** diisi di dashboard Vercel: `DATA_STORE=supabase`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`, dan `LOG_LEVEL`.
+- Jalan lokal tetap memakai `src/index.js` (`npm run start`).
+
 ### Mobile Application
 
 ```text
@@ -170,6 +176,8 @@ apps/
       auth/             memoryAuthProvider (JWT lokal) / supabaseAuthProvider
       storage/          local disk / Supabase Storage
       lib/              validators, dates, errors, logger (JSON terstruktur, level via LOG_LEVEL)
+    api/index.js        entry point Vercel (serverless); lokal tetap pakai src/index.js
+    vercel.json         rewrite semua URL ke api/index.js
     db/schema.sql       skema + fungsi adjust_item_stock (atomik) untuk Supabase
     tests/              unit/ + integration/ (node:test)
   mobile/   Expo (expo-router) + React Native Web

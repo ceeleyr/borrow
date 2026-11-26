@@ -29,7 +29,6 @@ function load() {
   return {
     port: Number(env.PORT) || 3000,
     dataStore,
-    seedDemo: env.SEED_DEMO !== 'false',
     jwtSecret: env.JWT_SECRET, // hanya dipakai mode memory
     uploadDir: env.UPLOAD_DIR || path.join(process.cwd(), 'uploads'),
     supabase: {

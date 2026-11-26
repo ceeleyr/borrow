@@ -1,6 +1,6 @@
 # API Reference
 
-Base URL: `http://localhost:3000/api` · Auth: header `Authorization: Bearer <access_token>`
+Base URL lokal: `http://localhost:3000/api` · Produksi: `https://<nama-project>.vercel.app/api` (diisi setelah deploy) · Auth: header `Authorization: Bearer <access_token>`
 Format sukses `{ "success": true, "data": ... }` · gagal `{ "success": false, "message": "...", "code": "..." }`
 
 Status HTTP: `400` validasi · `401` token hilang/tidak valid · `403` tidak punya akses · `404` tidak ditemukan · `409` konflik aturan bisnis (stok, transisi status, duplikat).

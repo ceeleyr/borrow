@@ -11,7 +11,7 @@
       "icon": "./assets/expo.icon"
     },
     "android": {
-      "package": "com.example.borrow",
+      "package": "borrow.mobile.s5",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -37,11 +37,26 @@
       ],
       "expo-secure-store",
       "@react-native-community/datetimepicker",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3dc909c2-76af-4c9f-8c51-cc270c130137"
+      }
+    },
+    "owner": "endrico"
   }
 }
